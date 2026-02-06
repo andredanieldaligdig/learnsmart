@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function Dashboard({ user }) {
   const [prompt, setPrompt] = useState("");
@@ -6,8 +6,8 @@ export default function Dashboard({ user }) {
     { role: "assistant", content: "Hi 👋 What would you like to study today?" },
   ]);
 
-  // Sidebar starts closed
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarRef = useRef(null);
 
   const sendPrompt = () => {
     if (!prompt.trim()) return;
@@ -21,6 +21,17 @@ export default function Dashboard({ user }) {
     setPrompt("");
   };
 
+  // Close sidebar if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
+        setSidebarOpen(false);
+      }
+    };
+    if (sidebarOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [sidebarOpen]);
+
   return (
     <div className="relative min-h-screen flex overflow-hidden">
 
@@ -32,7 +43,8 @@ export default function Dashboard({ user }) {
 
       {/* ===== SIDEBAR ===== */}
       <aside
-        className={`fixed top-0 left-0 z-20 h-full w-64 bg-white/20 backdrop-blur-xl border-r border-white/30 flex flex-col p-4 gap-6 transition-transform duration-300 ${
+        ref={sidebarRef}
+        className={`fixed top-0 left-0 z-20 h-full w-64 bg-white/20 backdrop-blur-xl border-r border-white/30 flex flex-col p-4 gap-6 transform transition-transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -47,21 +59,30 @@ export default function Dashboard({ user }) {
           Logged in as
           <div className="font-semibold truncate">{user.email}</div>
         </div>
+
+        {/* ===== MINIMAL TOGGLE ARROW INSIDE SIDEBAR ===== */}
+        <button
+          onClick={() => setSidebarOpen(false)}
+          className="absolute top-1/2 -right-4 w-8 h-12 bg-white/30 backdrop-blur rounded-l-lg flex items-center justify-center hover:bg-white/50 transition"
+        >
+          ❮
+        </button>
       </aside>
 
-      {/* ===== MAIN AREA ===== */}
-      <main className="flex-1 flex flex-col ml-0">
-        {/* Sidebar toggle + search bar */}
-        <div className="p-4 flex items-center justify-center gap-2">
-          {/* Sidebar toggle button (visible on all screens) */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg bg-white/30 hover:bg-white/50 transition"
-          >
-            ☰
-          </button>
+      {/* ===== TOGGLE ARROW WHEN SIDEBAR CLOSED ===== */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed top-1/2 left-0 z-30 w-8 h-12 bg-white/30 backdrop-blur rounded-r-lg flex items-center justify-center hover:bg-white/50 transition"
+        >
+          ❯
+        </button>
+      )}
 
-          {/* Search bar */}
+      {/* ===== MAIN AREA ===== */}
+      <main className="flex-1 flex flex-col ml-0 md:ml-0">
+        {/* Search bar */}
+        <div className="p-4 flex justify-center">
           <input
             placeholder="Looking for something?"
             className="flex-1 max-w-xl px-6 py-3 rounded-full bg-white/40 backdrop-blur border border-white/50 focus:outline-none focus:ring-2 focus:ring-rose-400"
