@@ -3,25 +3,17 @@ import { useState } from "react";
 export default function Dashboard({ user }) {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content: "Hi 👋 What would you like to study today?",
-    },
+    { role: "assistant", content: "Hi 👋 What would you like to study today?" },
   ]);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // visible by default on desktop
 
   const sendPrompt = () => {
     if (!prompt.trim()) return;
-
     setMessages([
       ...messages,
       { role: "user", content: prompt },
-      {
-        role: "assistant",
-        content:
-          "AI is thinking...",
-      },
+      { role: "assistant", content: "AI is thinking..." },
     ]);
-
     setPrompt("");
   };
 
@@ -34,12 +26,17 @@ export default function Dashboard({ user }) {
         <div className="absolute inset-0 bg-dot-grid opacity-40 animate-grid" />
       </div>
 
-      {/* ===== SIDEBAR (15%) ===== */}
-      <aside className="w-20 md:w-64 bg-white/20 backdrop-blur-xl border-r border-white/30 flex flex-col p-4 gap-6">
-        <h2 className="hidden md:block text-xl font-bold text-gray-900">
-          LearnSmart
-        </h2>
-
+      {/* ===== SIDEBAR ===== */}
+      <aside
+        className={`
+          fixed top-0 left-0 h-full bg-white/20 backdrop-blur-xl border-r border-white/30
+          flex flex-col p-4 gap-6 z-20
+          transform transition-transform duration-300
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:-translate-x-64"}
+          w-64
+        `}
+      >
+        <h2 className="text-xl font-bold text-gray-900">LearnSmart</h2>
         <button className="sidebar-btn">New Prompt</button>
         <button className="sidebar-btn">Trending Topics</button>
         <button className="sidebar-btn">Post a Question</button>
@@ -51,8 +48,16 @@ export default function Dashboard({ user }) {
         </div>
       </aside>
 
-      {/* ===== MAIN AREA (85%) ===== */}
-      <main className="flex-1 flex flex-col">
+      {/* ===== MAIN AREA ===== */}
+      <main className="flex-1 flex flex-col relative">
+
+        {/* ===== TOGGLE BUTTON (ALL DEVICES) ===== */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="fixed top-4 left-4 z-30 bg-white/40 backdrop-blur-xl p-2 rounded-lg shadow hover:bg-white/60 transition"
+        >
+          {sidebarOpen ? "✕" : "☰"}
+        </button>
 
         {/* Top Search */}
         <div className="p-4 flex justify-center">
@@ -67,9 +72,7 @@ export default function Dashboard({ user }) {
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`max-w-3xl ${
-                msg.role === "user" ? "ml-auto text-right" : ""
-              }`}
+              className={`max-w-3xl ${msg.role === "user" ? "ml-auto text-right" : ""}`}
             >
               <div
                 className={`inline-block px-5 py-3 rounded-2xl shadow ${
@@ -107,10 +110,7 @@ export default function Dashboard({ user }) {
       {/* ===== STYLES ===== */}
       <style>{`
         .bg-dot-grid {
-          background-image: radial-gradient(
-            rgba(255,255,255,0.45) 1px,
-            transparent 1px
-          );
+          background-image: radial-gradient(rgba(255,255,255,0.45) 1px, transparent 1px);
           background-size: 26px 26px;
         }
 
@@ -119,21 +119,14 @@ export default function Dashboard({ user }) {
           50% { transform: translate(-12px,-12px); }
           100% { transform: translate(0,0); }
         }
-
-        .animate-grid {
-          animation: grid-float 40s ease-in-out infinite;
-        }
+        .animate-grid { animation: grid-float 40s ease-in-out infinite; }
 
         @keyframes gradient {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
         }
-
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 18s ease infinite;
-        }
+        .animate-gradient { background-size: 200% 200%; animation: gradient 18s ease infinite; }
 
         .sidebar-btn {
           padding: 0.75rem;
@@ -142,7 +135,6 @@ export default function Dashboard({ user }) {
           transition: all 0.2s;
           font-weight: 500;
         }
-
         .sidebar-btn:hover {
           background: rgba(255,255,255,0.7);
         }
