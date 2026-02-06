@@ -5,15 +5,19 @@ export default function Dashboard({ user }) {
   const [messages, setMessages] = useState([
     { role: "assistant", content: "Hi 👋 What would you like to study today?" },
   ]);
-  const [sidebarOpen, setSidebarOpen] = useState(true); // visible by default on desktop
+
+  // Sidebar starts closed
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const sendPrompt = () => {
     if (!prompt.trim()) return;
+
     setMessages([
       ...messages,
       { role: "user", content: prompt },
       { role: "assistant", content: "AI is thinking..." },
     ]);
+
     setPrompt("");
   };
 
@@ -28,15 +32,12 @@ export default function Dashboard({ user }) {
 
       {/* ===== SIDEBAR ===== */}
       <aside
-        className={`
-          fixed top-0 left-0 h-full bg-white/20 backdrop-blur-xl border-r border-white/30
-          flex flex-col p-4 gap-6 z-20
-          transform transition-transform duration-300
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:-translate-x-64"}
-          w-64
-        `}
+        className={`fixed top-0 left-0 z-20 h-full w-64 bg-white/20 backdrop-blur-xl border-r border-white/30 flex flex-col p-4 gap-6 transition-transform duration-300 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
         <h2 className="text-xl font-bold text-gray-900">LearnSmart</h2>
+
         <button className="sidebar-btn">New Prompt</button>
         <button className="sidebar-btn">Trending Topics</button>
         <button className="sidebar-btn">Post a Question</button>
@@ -49,21 +50,21 @@ export default function Dashboard({ user }) {
       </aside>
 
       {/* ===== MAIN AREA ===== */}
-      <main className="flex-1 flex flex-col relative">
+      <main className="flex-1 flex flex-col ml-0">
+        {/* Sidebar toggle + search bar */}
+        <div className="p-4 flex items-center justify-center gap-2">
+          {/* Sidebar toggle button (visible on all screens) */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg bg-white/30 hover:bg-white/50 transition"
+          >
+            ☰
+          </button>
 
-        {/* ===== TOGGLE BUTTON (ALL DEVICES) ===== */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-4 left-4 z-30 bg-white/40 backdrop-blur-xl p-2 rounded-lg shadow hover:bg-white/60 transition"
-        >
-          {sidebarOpen ? "✕" : "☰"}
-        </button>
-
-        {/* Top Search */}
-        <div className="p-4 flex justify-center">
+          {/* Search bar */}
           <input
             placeholder="Looking for something?"
-            className="w-full max-w-2xl px-6 py-3 rounded-full bg-white/40 backdrop-blur border border-white/50 focus:outline-none focus:ring-2 focus:ring-rose-400"
+            className="flex-1 max-w-xl px-6 py-3 rounded-full bg-white/40 backdrop-blur border border-white/50 focus:outline-none focus:ring-2 focus:ring-rose-400"
           />
         </div>
 
@@ -119,14 +120,21 @@ export default function Dashboard({ user }) {
           50% { transform: translate(-12px,-12px); }
           100% { transform: translate(0,0); }
         }
-        .animate-grid { animation: grid-float 40s ease-in-out infinite; }
+
+        .animate-grid {
+          animation: grid-float 40s ease-in-out infinite;
+        }
 
         @keyframes gradient {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
         }
-        .animate-gradient { background-size: 200% 200%; animation: gradient 18s ease infinite; }
+
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 18s ease infinite;
+        }
 
         .sidebar-btn {
           padding: 0.75rem;
@@ -135,6 +143,7 @@ export default function Dashboard({ user }) {
           transition: all 0.2s;
           font-weight: 500;
         }
+
         .sidebar-btn:hover {
           background: rgba(255,255,255,0.7);
         }
