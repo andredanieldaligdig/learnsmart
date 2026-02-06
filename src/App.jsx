@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Login from "./components/login";
+import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 
 export default function App() {
