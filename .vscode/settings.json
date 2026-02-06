@@ -1,0 +1,16 @@
+{
+  // Use Tailwind IntelliSense (if installed) for JS/JSX/TSX and PostCSS/CSS files
+  "tailwindCSS.includeLanguages": {
+    "javascript": "javascript",
+    "javascriptreact": "html",
+    "typescriptreact": "html",
+    "css": "css",
+    "postcss": "css",
+    "plaintext": "html"
+  },
+
+  // Hide warnings about unknown at-rules (e.g. @tailwind, @apply)
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore"
+}
