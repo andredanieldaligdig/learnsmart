@@ -1,12 +1,32 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // ← add this
+import { loginAccount } from "../supabase.js"; // adjust path if needed
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    if (!email || !password) return;
-    onLogin({ email });
+  const navigate = useNavigate(); // ← initialize navigate
+
+  const handleLogin = async () => {
+    if (!email || !password) return setError("Please enter email and password");
+    setError("");
+    setLoading(true);
+
+    try {
+      // --- Supabase Auth login ---
+      const user = await loginAccount(email, password);
+
+      // Pass logged-in user to parent
+      onLogin(user);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -14,10 +34,7 @@ export default function Login({ onLogin }) {
 
       {/* ===== BACKGROUND ===== */}
       <div className="absolute inset-0 -z-10">
-        {/* Gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-pink-300 via-rose-300 to-orange-300 animate-gradient" />
-
-        {/* Dot Grid */}
         <div className="absolute inset-0 bg-dot-grid opacity-40 animate-grid" />
       </div>
 
@@ -36,8 +53,6 @@ export default function Login({ onLogin }) {
 
         {/* Inputs */}
         <div className="space-y-6">
-
-          {/* Email */}
           <div className="relative">
             <input
               type="email"
@@ -47,16 +62,15 @@ export default function Login({ onLogin }) {
               className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder-transparent"
             />
             <label className="
-              absolute left-4 top-4 text-gray-600 text-sm
+              absolute left-4 top-2 text-gray-600 text-sm
               transition-all duration-300
-              peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-rose-600
+              peer-focus:-translate-y-2 peer-focus:scale-90 peer-focus:text-rose-600
               peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90
             ">
               Email
             </label>
           </div>
 
-          {/* Password */}
           <div className="relative">
             <input
               type="password"
@@ -66,7 +80,7 @@ export default function Login({ onLogin }) {
               className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400 placeholder-transparent"
             />
             <label className="
-              absolute left-4 top-4 text-gray-600 text-sm
+              absolute left-4 top-2 text-gray-600 text-sm
               transition-all duration-300
               peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600
               peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90
@@ -75,12 +89,15 @@ export default function Login({ onLogin }) {
             </label>
           </div>
 
-          {/* Button */}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          {/* Continue button */}
           <button
             onClick={handleLogin}
+            disabled={loading}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-400 to-orange-400 text-white font-semibold shadow-lg hover:opacity-90 transition"
           >
-            Continue
+            {loading ? "Logging in..." : "Continue"}
           </button>
         </div>
 
@@ -91,30 +108,16 @@ export default function Login({ onLogin }) {
           <div className="flex-grow h-px bg-white/40" />
         </div>
 
-        {/* Social */}
-        <div className="space-y-3">
-          <button
-            onClick={() => onLogin({ email: "github@user" })}
-            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white/40 hover:bg-white/60 transition"
+        {/* Sign Up Link */}
+        <p className="mt-4 text-sm text-gray-500 text-center">
+          Don't have an account?{" "}
+          <span
+            className="text-blue-500 cursor-pointer"
+            onClick={() => navigate("/signup")}
           >
-            <img
-              src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg"
-              className="w-5 h-5"
-            />
-            Continue with GitHub
-          </button>
-
-          <button
-            onClick={() => onLogin({ email: "google@user" })}
-            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-white/40 hover:bg-white/60 transition"
-          >
-            <img
-              src="https://www.svgrepo.com/show/475656/google-color.svg"
-              className="w-5 h-5"
-            />
-            Continue with Google
-          </button>
-        </div>
+            Sign Up
+          </span>
+        </p>
       </div>
 
       {/* ===== CATS ===== */}
@@ -123,7 +126,6 @@ export default function Login({ onLogin }) {
         alt="cat"
         className="absolute bottom-4 left-6 w-24 animate-cat-left"
       />
-
       <img
         src="https://media.giphy.com/media/mlvseq9yvZhba/giphy.gif"
         alt="cat"
@@ -153,7 +155,7 @@ export default function Login({ onLogin }) {
         @keyframes gradient {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+          100% { background-position: 0 50%; }
         }
 
         .animate-gradient {
@@ -184,3 +186,4 @@ export default function Login({ onLogin }) {
     </div>
   );
 }
+    

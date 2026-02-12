@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-export default function Dashboard({ user }) {
+export default function Dashboard({ user, onLogout }) {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState([
     { role: "assistant", content: "Hi 👋 What would you like to study today?" },
@@ -55,7 +55,15 @@ export default function Dashboard({ user }) {
         <button className="sidebar-btn">Post a Question</button>
         <button className="sidebar-btn">Saved</button>
 
-        <div className="mt-auto text-xs text-gray-600">
+        {/* ===== LOGOUT BUTTON (ONLY ADDITION) ===== */}
+        <button
+          onClick={onLogout}
+          className="sidebar-btn mt-auto bg-red-600 text-white hover:bg-red-700"
+        >
+          Logout
+        </button>
+
+        <div className="text-xs text-gray-600">
           Logged in as
           <div className="font-semibold truncate">{user.email}</div>
         </div>
