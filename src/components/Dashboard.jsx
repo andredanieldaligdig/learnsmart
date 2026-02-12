@@ -151,7 +151,7 @@ export default function Dashboard({ user }) {
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
         }
-
+        
         .animate-gradient {
           background-size: 200% 200%;
           animation: gradient 18s ease infinite;
