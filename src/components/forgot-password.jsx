@@ -7,7 +7,7 @@ export default function ForgotPassword() {
 
   const handleReset = async () => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://learnsmart-wfmv.vercel.app/reset-password",
+      redirectTo: "https://learnsmart-wfmv.vercel.app/login",
     });
 
     if (error) setMessage(error.message);
