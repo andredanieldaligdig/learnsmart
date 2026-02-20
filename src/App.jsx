@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./components/login";
 import Signup from "./components/Signup";
+import ResetPassword from "./components/ResetPassword";
 import Dashboard from "./components/Dashboard";
 import Post from "./pages/Post";
 import TrendingTopics from "./pages/TrendingTopics";
@@ -13,7 +14,7 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Check session on load
+    // Check session on loaddd
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) setUser(data.session.user);
     });
@@ -34,11 +35,17 @@ export default function App() {
   return (
     <Router>
       <Routes>
+        {/* Routes for logged-out users */}
         {!user ? (
           <>
             <Route path="/" element={<Navigate to="/login" />} />
             <Route path="/login" element={<Login onLogin={setUser} />} />
             <Route path="/signup" element={<Signup />} />
+
+            {/* Password reset route */}
+            <Route path="/reset-password" element={<ResetPassword />} />
+
+            {/* Catch all redirects to login */}
             <Route path="*" element={<Navigate to="/login" />} />
           </>
         ) : (
