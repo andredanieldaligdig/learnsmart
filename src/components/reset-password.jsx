@@ -40,14 +40,12 @@ export default function ResetPassword() {
       setMessage("Password updated! Redirecting to login...");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      console.error(err);
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Enter key submission
   const handleKeyDown = (e) => {
     if (e.key === "Enter") handleReset();
   };
