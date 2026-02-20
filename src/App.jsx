@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./components/login";
-import Signup from "./components/Signup";
+import Login from "./components/login.jsx";
+import Signup from "./components/Signup.jsx";
 import ResetPassword from "./components/ResetPassword";
-import Dashboard from "./components/Dashboard";
-import Post from "./pages/Post";
-import TrendingTopics from "./pages/TrendingTopics";
-import Saved from "./pages/Saved";
-import Topics from "./pages/Topics";
+import Dashboard from "./components/Dashboard.jsx";
+import Post from "./pages/Post.jsx";
+import TrendingTopics from "./pages/TrendingTopics.jsx";
+import Saved from "./pages/Saved.jsx";
+import Topics from "./pages/Topics.jsx";
 import { supabase, logout } from "./supabase.js";
 
 export default function App() {
