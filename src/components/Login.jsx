@@ -8,9 +8,14 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState("login"); // login | forgot | reset
+  const [mode, setMode] = useState("login"); // login | forgot
 
   const navigate = useNavigate();
+
+  // Handle Enter key submission
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleAction();
+  };
 
   const handleAction = async () => {
     setError("");
@@ -33,26 +38,13 @@ export default function Login({ onLogin }) {
           return;
         }
 
+        const redirectUrl = `${window.location.origin}/reset-password`;
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: "http://localhost:3000/login",
+          redirectTo: redirectUrl,
         });
 
         if (error) throw error;
         setMessage("Check your email for reset link!");
-
-      } else if (mode === "reset") {
-        if (!password) {
-          setError("Enter new password");
-          return;
-        }
-
-        const { error } = await supabase.auth.updateUser({
-          password: password,
-        });
-
-        if (error) throw error;
-        setMessage("Password updated! You can now log in.");
-        setMode("login");
       }
 
     } catch (err) {
@@ -80,12 +72,10 @@ export default function Login({ onLogin }) {
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             {mode === "login" && "LearnSmart"}
             {mode === "forgot" && "Forgot Password"}
-            {mode === "reset" && "Reset Password"}
           </h1>
           <p className="text-sm text-gray-700/70 mt-2">
             {mode === "login" && "Smart study. Elevated."}
             {mode === "forgot" && "Enter your email to reset password"}
-            {mode === "reset" && "Enter your new password"}
           </p>
         </div>
 
@@ -93,33 +83,33 @@ export default function Login({ onLogin }) {
         <div className="space-y-6">
 
           {/* EMAIL */}
-          {mode !== "reset" && (
-            <div className="relative">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder-transparent"
-              />
-              <label className="absolute left-4 top-2 text-gray-600 text-sm transition-all duration-300 peer-focus:-translate-y-2 peer-focus:scale-90 peer-focus:text-rose-600 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
-                Email
-              </label>
-            </div>
-          )}
+          <div className="relative">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Email"
+              className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder-transparent"
+            />
+            <label className="absolute left-4 top-2 text-gray-600 text-sm transition-all duration-300 peer-focus:-translate-y-2 peer-focus:scale-90 peer-focus:text-rose-600 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
+              Email
+            </label>
+          </div>
 
-          {/* PASSWORD */}
-          {mode !== "forgot" && (
+          {/* PASSWORD (login only) */}
+          {mode === "login" && (
             <div className="relative">
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === "reset" ? "New Password" : "Password"}
+                onKeyDown={handleKeyDown}
+                placeholder="Password"
                 className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400 placeholder-transparent"
               />
               <label className="absolute left-4 top-2 text-gray-600 text-sm transition-all duration-300 peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
-                {mode === "reset" ? "New Password" : "Password"}
+                Password
               </label>
             </div>
           )}
@@ -134,19 +124,12 @@ export default function Login({ onLogin }) {
             disabled={loading}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-400 to-orange-400 text-white font-semibold shadow-lg hover:opacity-90 transition"
           >
-            {loading
-              ? "Processing..."
-              : mode === "login"
-              ? "Continue"
-              : mode === "forgot"
-              ? "Send Reset Link"
-              : "Update Password"}
+            {loading ? "Processing..." : mode === "login" ? "Continue" : "Send Reset Link"}
           </button>
         </div>
 
         {/* LINKS */}
         <div className="mt-4 text-center text-sm text-gray-500">
-
           {mode === "login" && (
             <>
               <p
@@ -155,7 +138,6 @@ export default function Login({ onLogin }) {
               >
                 Forgot Password?
               </p>
-
               <p className="mt-2">
                 Don't have an account?{" "}
                 <span
@@ -168,7 +150,7 @@ export default function Login({ onLogin }) {
             </>
           )}
 
-          {mode !== "login" && (
+          {mode === "forgot" && (
             <p
               className="text-blue-500 cursor-pointer"
               onClick={() => setMode("login")}
@@ -194,53 +176,17 @@ export default function Login({ onLogin }) {
       {/* ANIMATIONS */}
       <style>{`
         .bg-dot-grid {
-          background-image: radial-gradient(
-            rgba(255,255,255,0.45) 1px,
-            transparent 1px
-          );
+          background-image: radial-gradient(rgba(255,255,255,0.45) 1px, transparent 1px);
           background-size: 26px 26px;
         }
-
-        @keyframes grid-float {
-          0% { transform: translate(0,0); }
-          50% { transform: translate(-12px,-12px); }
-          100% { transform: translate(0,0); }
-        }
-
-        .animate-grid {
-          animation: grid-float 40s ease-in-out infinite;
-        }
-
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0 50%; }
-        }
-
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 18s ease infinite;
-        }
-
-        @keyframes cat-left {
-          0% { transform: translateX(0); }
-          50% { transform: translateX(20px); }
-          100% { transform: translateX(0); }
-        }
-
-        .animate-cat-left {
-          animation: cat-left 6s ease-in-out infinite;
-        }
-
-        @keyframes cat-right {
-          0% { transform: translateX(0); }
-          50% { transform: translateX(-20px); }
-          100% { transform: translateX(0); }
-        }
-
-        .animate-cat-right {
-          animation: cat-right 7s ease-in-out infinite;
-        }
+        @keyframes grid-float { 0% {transform:translate(0,0);} 50% {transform:translate(-12px,-12px);} 100% {transform:translate(0,0);} }
+        .animate-grid { animation:grid-float 40s ease-in-out infinite; }
+        @keyframes gradient { 0% { background-position:0% 50%; } 50% { background-position:100% 50%; } 100% { background-position:0 50%; } }
+        .animate-gradient { background-size:200% 200%; animation:gradient 18s ease infinite; }
+        @keyframes cat-left { 0% {transform:translateX(0);} 50% {transform:translateX(20px);} 100% {transform:translateX(0);} }
+        .animate-cat-left { animation:cat-left 6s ease-in-out infinite; }
+        @keyframes cat-right { 0% {transform:translateX(0);} 50% {transform:translateX(-20px);} 100% {transform:translateX(0);} }
+        .animate-cat-right { animation:cat-right 7s ease-in-out infinite; }
       `}</style>
     </div>
   );

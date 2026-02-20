@@ -1,17 +1,23 @@
 import { useState } from "react";
-import { supabase } from "../supabaseClient";
+import { supabase } from "../supabase.js";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
   const handleReset = async () => {
+    const redirectUrl = `${window.location.origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://learnsmart-wfmv.vercel.app/login",
+      redirectTo: redirectUrl,
     });
 
     if (error) setMessage(error.message);
     else setMessage("Check your email for reset link!");
+  };
+
+  // Handle Enter key submission
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleReset();
   };
 
   return (
@@ -25,7 +31,6 @@ export default function ForgotPassword() {
 
       {/* CARD */}
       <div className="relative w-full max-w-md bg-white/20 backdrop-blur-2xl border border-white/30 rounded-3xl shadow-[0_30px_80px_rgba(0,0,0,0.25)] p-8">
-
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-gray-900">Forgot Password</h1>
           <p className="text-sm text-gray-700/70 mt-2">
@@ -37,7 +42,9 @@ export default function ForgotPassword() {
           <div className="relative">
             <input
               type="email"
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Email"
               className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder-transparent"
             />

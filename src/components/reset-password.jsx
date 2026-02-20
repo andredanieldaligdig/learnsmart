@@ -11,7 +11,6 @@ export default function ResetPassword() {
 
   const navigate = useNavigate();
 
-  // Optional: auto-detect session from Supabase link
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.get("access_token")) {
@@ -48,6 +47,11 @@ export default function ResetPassword() {
     }
   };
 
+  // Handle Enter key submission
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleReset();
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-300 via-rose-300 to-orange-300">
       <div className="w-full max-w-md bg-white/20 backdrop-blur-2xl border border-white/30 rounded-3xl p-8 shadow-lg">
@@ -63,6 +67,7 @@ export default function ResetPassword() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="New Password"
               className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-orange-400"
             />
@@ -76,6 +81,7 @@ export default function ResetPassword() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Confirm Password"
               className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-orange-400"
             />
