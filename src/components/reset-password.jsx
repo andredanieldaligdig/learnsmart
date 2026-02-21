@@ -84,7 +84,7 @@ export default function ResetPassword() {
               placeholder="New Password"
               className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-orange-400"
             />
-            <label className="absolute left-4 top-2 text-sm text-gray-600 transition-all peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600">
+            <label className="absolute left-4 top-1 text-sm text-gray-600 transition-all peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600">
               New Password
             </label>
           </div>
@@ -98,7 +98,7 @@ export default function ResetPassword() {
               placeholder="Confirm Password"
               className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-orange-400"
             />
-            <label className="absolute left-4 top-2 text-sm text-gray-600 transition-all peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600">
+            <label className="absolute left-4 top-1 text-sm text-gray-600 transition-all peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600">
               Confirm Password
             </label>
           </div>

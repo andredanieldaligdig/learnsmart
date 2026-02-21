@@ -102,7 +102,7 @@ export default function Login({ onLogin }) {
                 placeholder="Email"
                 className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder-transparent"
               />
-              <label className="absolute left-4 top-2 text-gray-600 text-sm transition-all duration-300 peer-focus:-translate-y-2 peer-focus:scale-90 peer-focus:text-rose-600 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
+              <label className="absolute left-4 top-3 text-gray-600 text-sm transition-all duration-300 peer-focus:-translate-y-2 peer-focus:scale-90 peer-focus:text-rose-600 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
                 Email
               </label>
             </div>
@@ -118,7 +118,7 @@ export default function Login({ onLogin }) {
                 placeholder={mode === "reset" ? "New Password" : "Password"}
                 className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400 placeholder-transparent"
               />
-              <label className="absolute left-4 top-2 text-gray-600 text-sm transition-all duration-300 peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
+              <label className="absolute left-4 top-2 text-gray-600 text-sm transition-all duration-300 peer-focus:-translate-y-1 peer-focus:scale-90 peer-focus:text-orange-600 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
                 {mode === "reset" ? "New Password" : "Password"}
               </label>
             </div>
