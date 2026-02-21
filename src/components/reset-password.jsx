@@ -13,16 +13,17 @@ export default function ResetPassword() {
   const [token, setToken] = useState(null);
 
   useEffect(() => {
-    // Supabase sends access_token in hash: #access_token=...
-    const hash = new URLSearchParams(window.location.hash.replace("#", ""));
-    const access_token = hash.get("access_token");
+  const hash = new URLSearchParams(window.location.hash.replace("#", ""));
 
-    if (!access_token) {
-      setError("Invalid or expired reset link.");
-    } else {
-      setToken(access_token);
-    }
-  }, []);
+  const access_token = hash.get("access_token");
+  const refresh_token = hash.get("refresh_token");
+
+    if (!access_token || !refresh_token) {
+  setError("Invalid or expired reset link.");
+  } else {
+  setToken({ access_token, refresh_token });
+  }
+}, []);
 
   const handleReset = async () => {
     setError("");
