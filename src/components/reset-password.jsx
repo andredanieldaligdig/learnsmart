@@ -8,30 +8,20 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
 
   const navigate = useNavigate();
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.replace("#", ""));
-
-    const access_token = params.get("access_token");
+    // Supabase sends access_token in hash: #access_token=...
+    const hash = new URLSearchParams(window.location.hash.replace("#", ""));
+    const access_token = hash.get("access_token");
 
     if (!access_token) {
       setError("Invalid or expired reset link.");
-      return;
+    } else {
+      setToken(access_token);
     }
-
-    // 🔥 Set session using only access_token
-    supabase.auth.setSession({ access_token })
-      .then(({ error }) => {
-        if (error) {
-          setError("Session expired. Please request a new reset link.");
-        } else {
-          setReady(true);
-        }
-      });
   }, []);
 
   const handleReset = async () => {
@@ -42,7 +32,6 @@ export default function ResetPassword() {
       setError("Fill both fields");
       return;
     }
-
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -51,12 +40,21 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      if (!token) throw new Error("Missing session token.");
 
-      setMessage("Password updated! Redirecting to login...");
+      // Set the Supabase session using token from reset link
+      const { data: sessionError } = await supabase.auth.setSession({
+        access_token: token,
+      });
+
+      // Update password
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw updateError;
+
+      setMessage("Password updated! You can now log in.");
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
+      console.error(err);
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
@@ -76,47 +74,43 @@ export default function ResetPassword() {
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
         {message && <p className="text-green-600 text-sm mb-2">{message}</p>}
 
-        {!ready ? (
-          <p className="text-center text-gray-700">Validating reset link...</p>
-        ) : (
-          <div className="space-y-4">
-            <div className="relative">
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="New Password"
-                className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-orange-400"
-              />
-              <label className="absolute left-4 top-2 text-sm text-gray-600 transition-all peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600">
-                New Password
-              </label>
-            </div>
-
-            <div className="relative">
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Confirm Password"
-                className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-orange-400"
-              />
-              <label className="absolute left-4 top-2 text-sm text-gray-600 transition-all peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600">
-                Confirm Password
-              </label>
-            </div>
-
-            <button
-              onClick={handleReset}
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-400 to-orange-400 text-white font-semibold shadow-lg hover:opacity-90 transition"
-            >
-              {loading ? "Updating..." : "Update Password"}
-            </button>
+        <div className="space-y-4">
+          <div className="relative">
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="New Password"
+              className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+            <label className="absolute left-4 top-2 text-sm text-gray-600 transition-all peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600">
+              New Password
+            </label>
           </div>
-        )}
+
+          <div className="relative">
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Confirm Password"
+              className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+            <label className="absolute left-4 top-2 text-sm text-gray-600 transition-all peer-focus:-translate-y-3 peer-focus:scale-90 peer-focus:text-orange-600">
+              Confirm Password
+            </label>
+          </div>
+
+          <button
+            onClick={handleReset}
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-400 to-orange-400 text-white font-semibold shadow-lg hover:opacity-90 transition"
+          >
+            {loading ? "Updating..." : "Update Password"}
+          </button>
+        </div>
       </div>
     </div>
   );
