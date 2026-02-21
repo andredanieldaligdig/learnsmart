@@ -34,8 +34,8 @@ export default function Login({ onLogin }) {
         }
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: "http://localhost:3000/login",
-        });
+         redirectTo: "https://your-vercel-app.vercel.app/reset-password",
+      });
 
         if (error) throw error;
         setMessage("Check your email for reset link!");
@@ -179,17 +179,8 @@ export default function Login({ onLogin }) {
         </div>
       </div>
 
-      {/* CATS */}
-      <img
-        src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif"
-        alt="cat"
-        className="absolute bottom-4 left-6 w-24 animate-cat-left"
-      />
-      <img
-        src="https://media.giphy.com/media/mlvseq9yvZhba/giphy.gif"
-        alt="cat"
-        className="absolute bottom-6 right-6 w-24 animate-cat-right"
-      />
+
+
 
       {/* ANIMATIONS */}
       <style>{`
@@ -220,26 +211,6 @@ export default function Login({ onLogin }) {
         .animate-gradient {
           background-size: 200% 200%;
           animation: gradient 18s ease infinite;
-        }
-
-        @keyframes cat-left {
-          0% { transform: translateX(0); }
-          50% { transform: translateX(20px); }
-          100% { transform: translateX(0); }
-        }
-
-        .animate-cat-left {
-          animation: cat-left 6s ease-in-out infinite;
-        }
-
-        @keyframes cat-right {
-          0% { transform: translateX(0); }
-          50% { transform: translateX(-20px); }
-          100% { transform: translateX(0); }
-        }
-
-        .animate-cat-right {
-          animation: cat-right 7s ease-in-out infinite;
         }
       `}</style>
     </div>
