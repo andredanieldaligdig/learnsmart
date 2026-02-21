@@ -11,11 +11,14 @@ export default function Login({ onLogin }) {
   const [mode, setMode] = useState("login"); // login | forgot | reset
 
   const navigate = useNavigate();
+  
 
   const handleAction = async () => {
     setError("");
     setMessage("");
     setLoading(true);
+
+    
 
     try {
       if (mode === "login") {

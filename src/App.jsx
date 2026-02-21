@@ -15,10 +15,12 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
+    // get session on load
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setUser(data.session.user);
+      setUser(data.session?.user || null);
     });
 
+    // listen to auth changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
@@ -34,13 +36,16 @@ export default function App() {
   return (
     <Router>
       <Routes>
+        {/* ✅ ALWAYS ACCESSIBLE */}
+        <Route path="/login" element={<Login onLogin={setUser} />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
+        {/* ✅ CONDITIONAL */}
         {!user ? (
           <>
             <Route path="/" element={<Navigate to="/login" />} />
-            <Route path="/login" element={<Login onLogin={setUser} />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<Navigate to="/login" />} />
           </>
         ) : (
