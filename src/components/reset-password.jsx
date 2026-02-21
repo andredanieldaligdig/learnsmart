@@ -8,37 +8,30 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false); // 🔥 ensures session is set first
+  const [ready, setReady] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleRecovery = async () => {
-      const hash = window.location.hash;
-      const params = new URLSearchParams(hash.replace("#", ""));
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash.replace("#", ""));
 
-      const access_token = params.get("access_token");
-      const refresh_token = params.get("refresh_token");
+    const access_token = params.get("access_token");
 
-      if (!access_token || !refresh_token) {
-        setError("Invalid or expired reset link.");
-        return;
-      }
+    if (!access_token) {
+      setError("Invalid or expired reset link.");
+      return;
+    }
 
-      // 🔥 Create session from reset link
-      const { error } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
+    // 🔥 Set session using only access_token
+    supabase.auth.setSession({ access_token })
+      .then(({ error }) => {
+        if (error) {
+          setError("Session expired. Please request a new reset link.");
+        } else {
+          setReady(true);
+        }
       });
-
-      if (error) {
-        setError("Session expired. Please request a new reset link.");
-      } else {
-        setReady(true); // ✅ allow password reset
-      }
-    };
-
-    handleRecovery();
   }, []);
 
   const handleReset = async () => {
@@ -58,17 +51,11 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password,
-      });
-
+      const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
 
       setMessage("Password updated! Redirecting to login...");
-
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -83,12 +70,8 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-300 via-rose-300 to-orange-300">
       <div className="w-full max-w-md bg-white/20 backdrop-blur-2xl border border-white/30 rounded-3xl p-8 shadow-lg">
-        <h1 className="text-3xl font-bold text-gray-900 text-center mb-4">
-          Reset Password
-        </h1>
-        <p className="text-center text-gray-700 mb-6">
-          Enter your new password below
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900 text-center mb-4">Reset Password</h1>
+        <p className="text-center text-gray-700 mb-6">Enter your new password below</p>
 
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
         {message && <p className="text-green-600 text-sm mb-2">{message}</p>}
