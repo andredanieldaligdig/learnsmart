@@ -12,9 +12,13 @@ export default function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.get("access_token")) {
-      setError("Invalid or expired reset link.");
+    const hash = window.location.hash; // 👈 use hash, not search
+  const params = new URLSearchParams(hash.replace("#", ""));
+
+  const access_token = params.get("access_token");
+
+  if (!access_token) {
+    setError("Invalid or expired reset link.");
     }
   }, []);
 
