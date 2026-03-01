@@ -1,47 +1,18 @@
 import { useState } from "react";
 import Sidebar from "../components/sideBar";
+import { usePosts } from "../context/PostContext";
 
 export default function Post({ user, onLogout }) {
-  const [posts, setPosts] = useState([]);
+  const { posts, addPost, toggleLike, toggleSave, addComment } = usePosts();
   const [newPost, setNewPost] = useState("");
 
-  const addPost = () => {
+  const handleAddPost = () => {
     if (!newPost.trim()) return;
-
-    const post = {
-      id: Date.now(),
-      user: user.email,
+    addPost({
       content: newPost,
-      likes: 0,
-      saved: false,
-      comments: [],
-    };
-
-    setPosts([post, ...posts]);
+      user: user.email,
+    });
     setNewPost("");
-  };
-
-  const toggleLike = (id) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, likes: p.likes + 1 } : p))
-    );
-  };
-
-  const toggleSave = (id) => {
-    setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, saved: !p.saved } : p))
-    );
-  };
-
-  const addComment = (id, commentText) => {
-    if (!commentText.trim()) return;
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, comments: [...p.comments, { text: commentText, user: user.email }] }
-          : p
-      )
-    );
   };
 
   return (
@@ -59,7 +30,7 @@ export default function Post({ user, onLogout }) {
           className="w-full p-4 rounded-xl bg-white/40 backdrop-blur border border-white/50 focus:outline-none focus:ring-2 focus:ring-rose-400"
         />
         <button
-          onClick={addPost}
+          onClick={handleAddPost}
           className="mt-2 px-6 py-2 bg-gradient-to-r from-rose-400 to-orange-400 text-white rounded-xl font-semibold hover:opacity-90 transition"
         >
           Post
@@ -72,7 +43,7 @@ export default function Post({ user, onLogout }) {
               key={p.id}
               className="bg-white/40 backdrop-blur rounded-2xl p-4 shadow flex flex-col gap-2"
             >
-              <p className="font-semibold">{p.user}</p>
+              <p className="font-semibold">{p.author}</p>
               <p>{p.content}</p>
 
               {/* Likes & Save buttons */}
@@ -115,7 +86,7 @@ function CommentInput({ postId, addComment, user }) {
 
   const handleAdd = () => {
     if (!comment.trim()) return;
-    addComment(postId, comment);
+    addComment(postId, comment, user?.email);
     setComment("");
   };
 

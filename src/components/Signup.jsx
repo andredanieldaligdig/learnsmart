@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createAccount } from "../supabase.js"; // adjust path if needed
+import { createAccount } from "../../supabase.js"; // adjust path if needed
 import { useNavigate } from "react-router-dom";
 
 export default function Signup() {

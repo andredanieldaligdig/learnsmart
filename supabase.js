@@ -65,6 +65,17 @@ export async function addPost(user_id, title, content) {
   return data;
 }
 
+// Update a post's fields (likes, saved, comments, etc.)
+export async function updatePost(id, changes) {
+  const { data, error } = await supabase
+    .from('posts')
+    .update(changes)
+    .eq('id', id)
+    .select();
+  if (error) throw error;
+  return data && data[0];
+}
+
 // Get all posts
 export async function getPosts() {
   const { data, error } = await supabase.from('posts').select('*');
@@ -75,6 +86,48 @@ export async function getPosts() {
 // Get posts by user
 export async function getPostsByUser(user_id) {
   const { data, error } = await supabase.from('posts').select('*').eq('user_id', user_id);
+  if (error) throw error;
+  return data;
+}
+
+// ----- SAVED POSTS -----
+// Get saved post IDs for a user
+export async function getSavedPostIdsByUser(user_id) {
+  const { data, error } = await supabase
+    .from('saved_posts')
+    .select('post_id')
+    .eq('user_id', user_id);
+  if (error) throw error;
+  return data.map((r) => r.post_id);
+}
+
+// Get full saved posts for a user (fetch posts by ids)
+export async function getSavedPostsByUser(user_id) {
+  const ids = await getSavedPostIdsByUser(user_id);
+  if (!ids || ids.length === 0) return [];
+
+  const { data, error } = await supabase.from('posts').select('*').in('id', ids);
+  if (error) throw error;
+  return data;
+}
+
+// Save a post for a user (creates a saved_posts row)
+export async function savePostForUser(user_id, post_id) {
+  const { data, error } = await supabase
+    .from('saved_posts')
+    .insert([{ user_id, post_id }])
+    .select();
+  if (error) throw error;
+  return data && data[0];
+}
+
+// Remove a saved post for a user
+export async function removeSavedPostForUser(user_id, post_id) {
+  const { data, error } = await supabase
+    .from('saved_posts')
+    .delete()
+    .match({ user_id, post_id })
+    .select();
   if (error) throw error;
   return data;
 }

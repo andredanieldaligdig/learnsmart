@@ -9,15 +9,17 @@ import Post from "./pages/Post.jsx";
 import TrendingTopics from "./pages/TrendingTopics.jsx";
 import Saved from "./pages/Saved.jsx";
 import Topics from "./pages/Topics.jsx";
-import { supabase, logout } from "./supabase.js";
+import { supabase, logout } from "../supabase.js";
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // get session on load
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user || null);
+      setLoading(false);
     });
 
     // listen to auth changes
@@ -33,7 +35,11 @@ export default function App() {
     setUser(null);
   };
 
-  return (
+  return loading ? (
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-300 via-rose-300 to-orange-300">
+      <p className="text-white text-lg">Loading...</p>
+    </div>
+  ) : (
     <Router>
       <Routes>
         {/* ✅ ALWAYS ACCESSIBLE */}
