@@ -3,7 +3,7 @@ import Sidebar from "../components/sideBar";
 import { usePosts } from "../context/PostContext";
 
 export default function Post({ user, onLogout }) {
-  const { posts, addPost, toggleLike, toggleSave, addComment } = usePosts();
+  const { posts, addPost, toggleLike, toggleSave, addComment, remoteCount, fetchError } = usePosts();
   const [newPost, setNewPost] = useState("");
 
   const handleAddPost = () => {
@@ -23,6 +23,22 @@ export default function Post({ user, onLogout }) {
 
       {/* Main content */}
       <div className="flex-1 p-6 max-w-3xl mx-auto">
+        {fetchError && <p className="text-red-500 mb-2">Error loading posts: {fetchError}</p>}
+        {remoteCount !== null && (
+          <p className="text-sm text-gray-500 mb-2">
+            Loaded {remoteCount} {remoteCount === 1 ? "post" : "posts"} from server
+          </p>
+        )}
+        {remoteCount === 0 && posts.length > 0 && (
+          <p className="text-sm text-yellow-600 mb-2">
+            Your posts are currently only stored locally; they will sync to the server when possible.
+          </p>
+        )}
+        {remoteCount === 0 && user && (
+          <p className="text-sm text-yellow-600 mb-2">
+            No posts in database. Make sure you're logged in and that your Supabase table allows public selects.
+          </p>
+        )}
         {/* New post input */}
         <textarea
           value={newPost}
@@ -71,7 +87,7 @@ export default function Post({ user, onLogout }) {
                   </button>
                   <button
                     onClick={() => toggleSave(p.id)}
-                    className="px-3 py-1 bg-amber-200/60 rounded-full hover:bg-amber-300 transition"
+                    className="relative z-40 pointer-events-auto px-3 py-1 bg-amber-200/60 rounded-full hover:bg-amber-300 transition"
                   >
                     💾 {p.saved ? "Saved" : "Save"}
                   </button>

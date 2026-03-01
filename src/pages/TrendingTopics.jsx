@@ -3,7 +3,7 @@ import { useState } from "react";
 import { usePosts } from "../context/PostContext";
 
 export default function TrendingTopics() {
-  const { posts, toggleLike, toggleSave, addComment } = usePosts();
+  const { posts, toggleLike, toggleSave, addComment, remoteCount, fetchError } = usePosts();
 
   // show only posts that exist and sort by likes desc
   const trending = (posts || []).slice().sort((a, b) => (b.likes || 0) - (a.likes || 0));
@@ -11,14 +11,26 @@ export default function TrendingTopics() {
   return (
     <div className="flex-1 p-6 max-w-3xl mx-auto space-y-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-4">Trending Posts</h2>
+      {remoteCount !== null && (
+        <p className="text-sm text-gray-500 mb-2">
+          {remoteCount} post{remoteCount === 1 ? "" : "s"} in database
+        </p>
+      )}
 
+      {trending.length === 0 && (
+        <p className="text-center text-gray-600">
+          {fetchError
+            ? "Unable to load trending posts."
+            : "No trending posts yet."}
+        </p>
+      )}
       {trending.map((post) => (
         <div key={post.id} className="bg-white/40 backdrop-blur rounded-xl p-4 shadow space-y-3">
           <div className="flex justify-between items-center">
             <span className="font-semibold">{post.author}</span>
             <div className="flex gap-2 text-sm">
               <button onClick={() => toggleLike(post.id)} className="px-2 py-1 bg-rose-400/70 rounded text-white">❤️ {post.likes}</button>
-              <button onClick={() => toggleSave(post.id)} className={`px-2 py-1 rounded text-white ${post.saved ? "bg-emerald-500" : "bg-gray-500/50"}`}>{post.saved ? "Saved" : "Save"}</button>
+              <button onClick={() => toggleSave(post.id)} className={`relative z-40 pointer-events-auto px-2 py-1 rounded text-white ${post.saved ? "bg-emerald-500" : "bg-gray-500/50"}`}>{post.saved ? "Saved" : "Save"}</button>
             </div>
           </div>
 

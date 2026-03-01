@@ -32,7 +32,7 @@ export default function Saved() {
                   </button>
                   <button
                     onClick={() => toggleSave(post.id)}
-                    className={`px-2 py-1 rounded text-white ${
+                    className={`relative z-40 pointer-events-auto px-2 py-1 rounded text-white ${
                       post.saved ? "bg-emerald-500" : "bg-gray-500/50"
                     }`}
                   >
