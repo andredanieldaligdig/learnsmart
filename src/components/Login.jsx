@@ -8,7 +8,7 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState("login"); // login | forgot | reset
+  const [mode, setMode] = useState("login"); 
 
   const navigate = useNavigate();
   
@@ -29,6 +29,7 @@ export default function Login({ onLogin }) {
 
         const user = await loginAccount(email, password);
         onLogin(user);
+        navigate("/"); 
 
       } else if (mode === "forgot") {
         if (!email) {

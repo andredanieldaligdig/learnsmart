@@ -140,7 +140,7 @@ export default function Dashboard({ user, onLogout }) {
 
         <div className="text-xs text-gray-600">
           Logged in as
-          <div className="font-semibold truncate">{user.email}</div>
+          <div className="font-semibold truncate">{user?.email}</div>
         </div>
 
         <button
