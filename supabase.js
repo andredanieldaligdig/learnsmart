@@ -57,12 +57,37 @@ export async function getCurrentUser() {
 // ----- POSTS -----
 // Add a post
 export async function addPost(user_id, title, content) {
-  const { data, error } = await supabase
-    .from('posts')
-    .insert([{ user_id, title, content }])
-    .select();
-  if (error) throw error;
-  return data;
+  try {
+    // Resolve current user if user_id not provided
+    let uid = user_id;
+    let author = null;
+    if (!uid) {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      uid = user?.id || null;
+      author = user?.email || null;
+    }
+
+    const payload = {
+      content: content || title || "",
+      likes: 0,
+      saved: false,
+      comments: [],
+    };
+
+    if (uid) payload.user_id = uid;
+    if (author) payload.author = author;
+
+    const { data, error } = await supabase
+      .from('posts')
+      .insert([payload])
+      .select();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('addPost error:', err);
+    throw err;
+  }
 }
 
 // Update a post's fields (likes, saved, comments, etc.)

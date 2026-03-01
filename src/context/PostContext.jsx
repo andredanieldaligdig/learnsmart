@@ -43,25 +43,44 @@ export function PostProvider({ children }) {
 
   // contentObj should have { content, user } where user is email or id
   const addPost = async (contentObj) => {
-    const { content, user } = contentObj;
+    const { content, user, author } = contentObj;
     try {
-      // attempt to resolve current user id via session
+      // Optimistically add a local post so UI updates immediately
+      const tempId = Date.now() * -1;
+      const optimistic = {
+        id: tempId,
+        author: author || user || "Anonymous",
+        content,
+        likes: 0,
+        liked: false,
+        saved: false,
+        comments: [],
+        raw: null,
+      };
+      setPosts((prev) => [optimistic, ...prev]);
+
+      // attempt to persist to Supabase
       const added = await sbAddPost(user || null, null, content);
-      // sbAddPost returns inserted records array
       const inserted = added && added[0];
+      if (!inserted) throw new Error("No record returned from Supabase");
+
       const mapped = {
         id: inserted.id,
-        author: inserted.author || inserted.user_id || user || "Anonymous",
+        author: inserted.author || author || inserted.user_id || user || "Anonymous",
         content: inserted.content || inserted.title || content,
         likes: inserted.likes || 0,
         liked: !!inserted.liked,
         saved: !!inserted.saved,
-        comments: inserted.comments || [],
+        comments: (inserted.comments || []).map((c) => (typeof c === "string" ? { text: c, user: inserted.author || author || inserted.user_id || user || "Anonymous" } : c)),
         raw: inserted,
       };
-      setPosts((prev) => [mapped, ...prev]);
+
+      // replace optimistic item with real inserted post
+      setPosts((prev) => [mapped, ...prev.filter((p) => p.id !== tempId)]);
     } catch (err) {
       console.error("Failed to add post to Supabase:", err);
+      // on error, remove optimistic post
+      setPosts((prev) => prev.filter((p) => p.content !== content || p.author !== (user || "Anonymous")));
     }
   };
 

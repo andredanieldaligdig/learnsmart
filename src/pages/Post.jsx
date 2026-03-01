@@ -10,7 +10,8 @@ export default function Post({ user, onLogout }) {
     if (!newPost.trim()) return;
     addPost({
       content: newPost,
-      user: user.email,
+      user: user?.id,
+      author: user?.email,
     });
     setNewPost("");
   };
@@ -36,44 +37,59 @@ export default function Post({ user, onLogout }) {
           Post
         </button>
 
-        {/* Posts */}
+        {/* Posts (10 most recent) */}
         <div className="mt-6 space-y-6">
-          {posts.map((p) => (
-            <div
-              key={p.id}
-              className="bg-white/40 backdrop-blur rounded-2xl p-4 shadow flex flex-col gap-2"
-            >
-              <p className="font-semibold">{p.author}</p>
-              <p>{p.content}</p>
+          {(() => {
+            const list = (posts || [])
+              .slice()
+              .sort((a, b) => {
+                const aTime = new Date(a.raw?.created_at || a.raw?.inserted_at || 0).getTime() || a.id || 0;
+                const bTime = new Date(b.raw?.created_at || b.raw?.inserted_at || 0).getTime() || b.id || 0;
+                return bTime - aTime;
+              })
+              .slice(0, 10);
 
-              {/* Likes & Save buttons */}
-              <div className="flex gap-4 mt-2">
-                <button
-                  onClick={() => toggleLike(p.id)}
-                  className="px-3 py-1 bg-rose-200/60 rounded-full hover:bg-rose-300 transition"
-                >
-                  ❤️ {p.likes}
-                </button>
-                <button
-                  onClick={() => toggleSave(p.id)}
-                  className="px-3 py-1 bg-amber-200/60 rounded-full hover:bg-amber-300 transition"
-                >
-                  💾 {p.saved ? "Saved" : "Save"}
-                </button>
+            if (list.length === 0) {
+              return <p className="text-center text-gray-600">No posts yet.</p>;
+            }
+
+            return list.map((p) => (
+              <div
+                key={p.id}
+                className="bg-white/40 backdrop-blur rounded-2xl p-4 shadow flex flex-col gap-2"
+              >
+                <p className="font-semibold">{p.author}</p>
+                <p>{p.content}</p>
+
+                {/* Likes & Save buttons */}
+                <div className="flex gap-4 mt-2">
+                  <button
+                    onClick={() => toggleLike(p.id)}
+                    className="px-3 py-1 bg-rose-200/60 rounded-full hover:bg-rose-300 transition"
+                  >
+                    ❤️ {p.likes}
+                  </button>
+                  <button
+                    onClick={() => toggleSave(p.id)}
+                    className="px-3 py-1 bg-amber-200/60 rounded-full hover:bg-amber-300 transition"
+                  >
+                    💾 {p.saved ? "Saved" : "Save"}
+                  </button>
+                </div>
+
+                {/* Comments */}
+                <div className="mt-2 space-y-2">
+                  {p.comments.map((c, i) => (
+                    <p key={i} className="text-sm text-gray-700">
+                      <span className="font-semibold">{c.user}:</span> {c.text}
+                    </p>
+                  ))}
+
+                  <CommentInput postId={p.id} addComment={addComment} user={user} />
+                </div>
               </div>
-
-              {/* Comments */}
-              <div className="mt-2 space-y-2">
-                {p.comments.map((c, i) => (
-                  <p key={i} className="text-sm text-gray-700">
-                    <span className="font-semibold">{c.user}:</span> {c.text}
-                  </p>
-                ))}
-
-                <CommentInput postId={p.id} addComment={addComment} user={user} />
-              </div>
-            </div>
-          ))}
+            ));
+          })()}
         </div>
       </div>
     </div>
