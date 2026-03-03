@@ -3,7 +3,7 @@ import Sidebar from "../components/sideBar";
 import { usePosts } from "../context/PostContext";
 
 export default function Post({ user, onLogout }) {
-  const { posts, addPost, toggleLike, toggleSave, addComment, remoteCount, fetchError } = usePosts();
+  const { posts, addPost, toggleLike, toggleSave, addComment, fetchError } = usePosts();
   const [newPost, setNewPost] = useState("");
 
   const handleAddPost = () => {
@@ -23,22 +23,12 @@ export default function Post({ user, onLogout }) {
 
       {/* Main content */}
       <div className="flex-1 p-6 max-w-3xl mx-auto">
-        {fetchError && <p className="text-red-500 mb-2">Error loading posts: {fetchError}</p>}
-        {remoteCount !== null && (
-          <p className="text-sm text-gray-500 mb-2">
-            Loaded {remoteCount} {remoteCount === 1 ? "post" : "posts"} from server
+        {fetchError && (
+          <p className="text-red-500 mb-2">
+            Something went wrong. Please try again.
           </p>
         )}
-        {remoteCount === 0 && posts.length > 0 && (
-          <p className="text-sm text-yellow-600 mb-2">
-            Your posts are currently only stored locally; they will sync to the server when possible.
-          </p>
-        )}
-        {remoteCount === 0 && user && (
-          <p className="text-sm text-yellow-600 mb-2">
-            No posts in database. Make sure you're logged in and that your Supabase table allows public selects.
-          </p>
-        )}
+
         {/* New post input */}
         <textarea
           value={newPost}
@@ -53,14 +43,14 @@ export default function Post({ user, onLogout }) {
           Post
         </button>
 
-        {/* Posts (10 most recent) */}
+        {/* Posts */}
         <div className="mt-6 space-y-6">
           {(() => {
             const list = (posts || [])
               .slice()
               .sort((a, b) => {
-                const aTime = new Date(a.raw?.created_at || a.raw?.inserted_at || 0).getTime() || a.id || 0;
-                const bTime = new Date(b.raw?.created_at || b.raw?.inserted_at || 0).getTime() || b.id || 0;
+                const aTime = new Date(a.raw?.created_at || 0).getTime();
+                const bTime = new Date(b.raw?.created_at || 0).getTime();
                 return bTime - aTime;
               })
               .slice(0, 10);
@@ -77,7 +67,7 @@ export default function Post({ user, onLogout }) {
                 <p className="font-semibold">{p.author}</p>
                 <p>{p.content}</p>
 
-                {/* Likes & Save buttons */}
+                {/* Likes & Save */}
                 <div className="flex gap-4 mt-2">
                   <button
                     onClick={() => toggleLike(p.id)}
@@ -95,7 +85,7 @@ export default function Post({ user, onLogout }) {
 
                 {/* Comments */}
                 <div className="mt-2 space-y-2">
-                  {p.comments.map((c, i) => (
+                  {(p.comments || []).map((c, i) => (
                     <p key={i} className="text-sm text-gray-700">
                       <span className="font-semibold">{c.user}:</span> {c.text}
                     </p>
@@ -112,7 +102,7 @@ export default function Post({ user, onLogout }) {
   );
 }
 
-// Separate small component for comment input
+// Comment Input
 function CommentInput({ postId, addComment, user }) {
   const [comment, setComment] = useState("");
 

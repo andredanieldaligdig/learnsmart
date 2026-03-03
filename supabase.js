@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // ----- Supabase client setup -----
 const supabaseUrl = 'https://obxthuoqtaoimpidximk.supabase.co'; 
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ieHRodW9xdGFvaW1waWR4aW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MDg1NjcsImV4cCI6MjA4NjQ4NDU2N30.9T5xvSVwptKWxKzx-a1ozBK3uH04oOUd1G4Ibe-wvZE';
+const supabaseAnonKey = 'YOUR_ANON_KEY_HERE';
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: localStorage,
@@ -12,14 +13,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+
 // ----- AUTH -----
 // Signup new user
 export async function createAccount(email, password, dob = null, gender = null) {
-  // 1️⃣ Create user in Supabase Auth
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) throw error;
 
-  // 2️⃣ Add extra fields to accounts table (DOB, gender)
   if (dob || gender) {
     const { error: profileError } = await supabase
       .from('accounts')
@@ -29,13 +29,14 @@ export async function createAccount(email, password, dob = null, gender = null) 
         dob,
         gender,
       }]);
+
     if (profileError) throw profileError;
   }
 
   return data.user;
 }
 
-// Login existing user
+// Login
 export async function loginAccount(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
@@ -54,13 +55,14 @@ export async function getCurrentUser() {
   return data.user;
 }
 
+
 // ----- POSTS -----
-// Add a post
+// Add post
 export async function addPost(user_id, title, content) {
   try {
-    // Resolve current user if user_id not provided
     let uid = user_id;
     let author = null;
+
     if (!uid) {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData?.user;
@@ -71,7 +73,6 @@ export async function addPost(user_id, title, content) {
     const payload = {
       content: content || title || "",
       likes: 0,
-      saved: false,
       comments: [],
     };
 
@@ -82,21 +83,24 @@ export async function addPost(user_id, title, content) {
       .from('posts')
       .insert([payload])
       .select();
+
     if (error) throw error;
     return data;
+
   } catch (err) {
     console.error('addPost error:', err);
     throw err;
   }
 }
 
-// Update a post's fields (likes, saved, comments, etc.)
+// Update post
 export async function updatePost(id, changes) {
   const { data, error } = await supabase
     .from('posts')
     .update(changes)
     .eq('id', id)
     .select();
+
   if (error) throw error;
   return data && data[0];
 }
@@ -110,65 +114,81 @@ export async function getPosts() {
 
 // Get posts by user
 export async function getPostsByUser(user_id) {
-  const { data, error } = await supabase.from('posts').select('*').eq('user_id', user_id);
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('user_id', user_id);
+
   if (error) throw error;
   return data;
 }
 
+
 // ----- SAVED POSTS -----
-// Get saved post IDs for a user
+// Get saved post IDs
 export async function getSavedPostIdsByUser(user_id) {
   const { data, error } = await supabase
     .from('saved_posts')
     .select('post_id')
     .eq('user_id', user_id);
-  if (error) throw error;
+
+  if (error) {
+    console.error("Fetch saved IDs error:", error);
+    return [];
+  }
+
   return data.map((r) => r.post_id);
 }
 
-// Get full saved posts for a user (fetch posts by ids)
+// Get full saved posts
 export async function getSavedPostsByUser(user_id) {
   const ids = await getSavedPostIdsByUser(user_id);
   if (!ids || ids.length === 0) return [];
 
-  const { data, error } = await supabase.from('posts').select('*').in('id', ids);
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .in('id', ids);
+
   if (error) throw error;
   return data;
 }
 
-// Save a post for a user (creates a saved_posts row)
+// Save post (NO DUPLICATES)
 export async function savePostForUser(user_id, post_id) {
   const { data, error } = await supabase
     .from('saved_posts')
-    .insert([{ user_id, post_id }])
-    .select();
+    .upsert([{ user_id, post_id }]); // ✅ FIXED
+
   if (error) throw error;
-  return data && data[0];
+  return data;
 }
 
-// Remove a saved post for a user
+// Remove saved post
 export async function removeSavedPostForUser(user_id, post_id) {
   const { data, error } = await supabase
     .from('saved_posts')
     .delete()
-    .match({ user_id, post_id })
-    .select();
+    .match({ user_id, post_id });
+
   if (error) throw error;
   return data;
 }
 
+
 // ----- MESSAGES -----
-// Send a message
+// Send message
 export async function sendMessage(sender_id, receiver_id, message) {
   const { data, error } = await supabase
     .from('messages')
     .insert([{ sender_id, receiver_id, message }])
     .select();
+
   if (error) throw error;
   return data;
 }
 
-// Get messages between two users
+// Get conversation
 export async function getMessages(user1_id, user2_id) {
   const { data, error } = await supabase
     .from('messages')
@@ -177,6 +197,7 @@ export async function getMessages(user1_id, user2_id) {
       `and(sender_id.eq.${user1_id},receiver_id.eq.${user2_id}),and(sender_id.eq.${user2_id},receiver_id.eq.${user1_id})`
     )
     .order('created_at', { ascending: true });
+
   if (error) throw error;
   return data;
 }
@@ -188,6 +209,7 @@ export async function getMessagesForUser(user_id) {
     .select('*')
     .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`)
     .order('created_at', { ascending: true });
+
   if (error) throw error;
   return data;
 }
