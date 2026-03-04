@@ -102,7 +102,7 @@ export default function Post({ user, onLogout }) {
   );
 }
 
-// Comment Input
+
 function CommentInput({ postId, addComment, user }) {
   const [comment, setComment] = useState("");
 
