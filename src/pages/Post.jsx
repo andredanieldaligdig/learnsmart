@@ -7,7 +7,7 @@ export default function Post({ user, onLogout }) {
   const { posts, toggleLike, toggleSave, addComment, fetchError } = usePosts();
   const [newPost, setNewPost] = useState("");
 
-  // REVISED addPost
+  // REVISED addPost matching updated Supabase schema
   const addPost = async ({ content, user: userId, author }) => {
     if (!content.trim()) return;
 
@@ -15,12 +15,20 @@ export default function Post({ user, onLogout }) {
       // Insert into Supabase
       const { data, error } = await supabase
         .from("posts")
-        .insert([{ content, user: userId, author }])
-        .select(); // select returns the inserted row
+        .insert([{
+          user_id: userId,
+          author: author || "",
+          title: "",         // optional, can leave empty
+          content: content,
+          likes: 0,          // default 0
+          image_url: null,   // optional
+          comments: []       // empty array for new posts
+        }])
+        .select(); // return the inserted row
 
       if (error) throw error;
 
-      // Optionally update local posts state if your context allows
+      // Update local posts state so UI shows immediately
       posts.unshift(data[0]);
     } catch (err) {
       console.error("Error adding post:", err.message);
@@ -31,8 +39,8 @@ export default function Post({ user, onLogout }) {
   const handleAddPost = () => {
     addPost({
       content: newPost,
-      user: user?.id,
-      author: user?.email,
+      user: user?.id,   // maps to user_id
+      author: user?.email
     });
     setNewPost("");
   };
