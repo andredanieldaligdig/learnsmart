@@ -1,13 +1,34 @@
 import { useState } from "react";
 import Sidebar from "../components/sideBar";
 import { usePosts } from "../context/PostContext";
+import { supabase } from "../lib/supabaseClient"; // Make sure this exists
 
 export default function Post({ user, onLogout }) {
-  const { posts, addPost, toggleLike, toggleSave, addComment, fetchError } = usePosts();
+  const { posts, toggleLike, toggleSave, addComment, fetchError } = usePosts();
   const [newPost, setNewPost] = useState("");
 
+  // REVISED addPost
+  const addPost = async ({ content, user: userId, author }) => {
+    if (!content.trim()) return;
+
+    try {
+      // Insert into Supabase
+      const { data, error } = await supabase
+        .from("posts")
+        .insert([{ content, user: userId, author }])
+        .select(); // select returns the inserted row
+
+      if (error) throw error;
+
+      // Optionally update local posts state if your context allows
+      posts.unshift(data[0]);
+    } catch (err) {
+      console.error("Error adding post:", err.message);
+      alert("Failed to add post. Try again.");
+    }
+  };
+
   const handleAddPost = () => {
-    if (!newPost.trim()) return;
     addPost({
       content: newPost,
       user: user?.id,
@@ -101,7 +122,6 @@ export default function Post({ user, onLogout }) {
     </div>
   );
 }
-
 
 function CommentInput({ postId, addComment, user }) {
   const [comment, setComment] = useState("");
