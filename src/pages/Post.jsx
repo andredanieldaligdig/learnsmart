@@ -7,28 +7,43 @@ export default function Post({ user, onLogout }) {
   const { posts, toggleLike, toggleSave, addComment, fetchError } = usePosts();
   const [newPost, setNewPost] = useState("");
 
-  // REVISED addPost matching updated Supabase schema
+  // REVISED addPost with automatic user insertion
   const addPost = async ({ content, user: userId, author }) => {
     if (!content.trim()) return;
 
     try {
-      // Insert into Supabase
+      // Ensure the user exists in the users table
+      const { data: existingUser, error: userError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (!existingUser) {
+        const { data: insertedUser, error: insertUserError } = await supabase
+          .from("users")
+          .insert({ id: userId, email: author || "" });
+
+        if (insertUserError) throw insertUserError;
+      }
+
+      // Insert post
       const { data, error } = await supabase
         .from("posts")
         .insert([{
           user_id: userId,
           author: author || "",
-          title: "",         // optional, can leave empty
+          title: "",         // optional
           content: content,
           likes: 0,          // default 0
           image_url: null,   // optional
-          comments: []       // empty array for new posts
+          comments: []       // start empty
         }])
-        .select(); // return the inserted row
+        .select(); // return inserted row
 
       if (error) throw error;
 
-      // Update local posts state so UI shows immediately
+      // Update local posts state
       posts.unshift(data[0]);
     } catch (err) {
       console.error("Error adding post:", err.message);
