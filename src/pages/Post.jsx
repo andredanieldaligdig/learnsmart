@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Sidebar from "../components/sideBar";
 import { usePosts } from "../context/PostContext";
-import { supabase } from "../lib/supabaseClient"; // Make sure this exists
+import { supabase } from "../../supabase.js";
 
 export default function Post({ user, onLogout }) {
   const { posts, toggleLike, toggleSave, addComment, fetchError } = usePosts();
