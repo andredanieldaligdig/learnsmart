@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const [username, setUsername] = useState(""); // ADDED
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [dob, setDob] = useState("");
@@ -12,13 +13,13 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!email || !password || !dob || !gender)
+    if (!username || !email || !password || !dob || !gender)
       return setError("Please fill in all fields");
     setError("");
     setLoading(true);
 
     try {
-      const user = await createAccount(email, password);
+      const user = await createAccount(email, password, username); // ADDED USERNAME
       // Here you can optionally store dob and gender in your user profile table
       navigate("/login");
     } catch (err) {
@@ -53,6 +54,25 @@ export default function Signup() {
 
         {/* Inputs */}
         <div className="space-y-6">
+
+          {/* Username */}
+          <div className="relative">
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username"
+              className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder-transparent"
+            />
+            <label className="
+              absolute left-4 top-2 text-gray-600 text-sm
+              transition-all duration-300
+              peer-focus:-translate-y-1 peer-focus:scale-90 peer-focus:text-rose-600
+              peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90
+            ">
+              Username
+            </label>
+          </div>
 
           {/* Email */}
           <div className="relative">
