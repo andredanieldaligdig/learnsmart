@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createAccount } from "../../supabase.js"; // adjust path if needed
+import { createAccount } from "../../supabase.js"; 
 import { useNavigate } from "react-router-dom";
 
 export default function Signup() {
@@ -178,34 +178,6 @@ export default function Signup() {
 
         </div>
       </div>
-
-      {/* Cats */}
-      <img
-        src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif"
-        alt="cat"
-        className="absolute bottom-4 left-6 w-24 animate-cat-left"
-      />
-      <img
-        src="https://media.giphy.com/media/mlvseq9yvZhba/giphy.gif"
-        alt="cat"
-        className="absolute bottom-6 right-6 w-24 animate-cat-right"
-      />
-
-      {/* Animations */}
-      <style>{`
-        .bg-dot-grid {
-          background-image: radial-gradient(rgba(255,255,255,0.45) 1px, transparent 1px);
-          background-size: 26px 26px;
-        }
-        @keyframes grid-float {0%{transform:translate(0,0);}50%{transform:translate(-12px,-12px);}100%{transform:translate(0,0);}}
-        .animate-grid {animation:grid-float 40s ease-in-out infinite;}
-        @keyframes gradient {0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0 50%;}}
-        .animate-gradient {background-size:200% 200%;animation:gradient 18s ease infinite;}
-        @keyframes cat-left {0%{transform:translateX(0);}50%{transform:translateX(20px);}100%{transform:translateX(0);}}
-        .animate-cat-left {animation:cat-left 6s ease-in-out infinite;}
-        @keyframes cat-right {0%{transform:translateX(0);}50%{transform:translateX(-20px);}100%{transform:translateX(0);}}
-        .animate-cat-right {animation:cat-right 7s ease-in-out infinite;}
-      `}</style>
     </div>
   );
 }
