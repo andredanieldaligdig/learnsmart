@@ -13,14 +13,13 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!username || !email || !password || !dob || !gender)
+    if (!username || !email || !password || !username || !gender)
       return setError("Please fill in all fields");
     setError("");
     setLoading(true);
 
     try {
-      const user = await createAccount(email, password, username); // ADDED USERNAME
-      // Here you can optionally store dob and gender in your user profile table
+      const user = await createAccount(email, password, username); 
       navigate("/login");
     } catch (err) {
       console.error(err);
