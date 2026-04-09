@@ -19,7 +19,7 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      const user = await createAccount(email, password, username); 
+      const user = await createAccount(email, password, username, gender, dob); 
       navigate("/login");
     } catch (err) {
       console.error(err);

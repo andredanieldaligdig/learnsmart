@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./components/Login.jsx";
+import Login from "./components/login.jsx";
 import Signup from "./components/Signup.jsx";
 import ForgotPassword from "./components/forgot-password.jsx";
 import ResetPassword from "./components/reset-password.jsx";

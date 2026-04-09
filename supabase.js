@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // ----- Supabase client setup -----
-const supabaseUrl = 'https://obxthuoqtaoimpidximk.supabase.co'; 
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ieHRodW9xdGFvaW1waWR4aW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MDg1NjcsImV4cCI6MjA4NjQ4NDU2N30.9T5xvSVwptKWxKzx-a1ozBK3uH04oOUd1G4Ibe-wvZE';
+const supabaseUrl = 'https://obxthuoqtaoimpidximk.supabase.co';
+const supabaseAnonKey = 'YOUR_ANON_KEY_HERE'; // (keep private in real apps)
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -14,40 +14,61 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 
-// ----- AUTH -----
-// Signup new user
-export async function createAccount(email, password, dob = null, gender = null) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+// ======================================================
+// AUTH
+// ======================================================
+
+// Signup new user (FIXED VERSION)
+export async function createAccount(email, password, username, gender, dob) {
+  // 1. Create auth user
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
   if (error) throw error;
 
-  if (dob || gender) {
+  const user = data.user;
+
+  // 2. Insert profile into accounts table
+  if (user) {
     const { error: profileError } = await supabase
       .from('accounts')
-      .insert([{
-        id: data.user.id,
-        email,
-        dob,
-        gender,
-      }]);
+      .insert([
+        {
+          id: user.id,
+          email,
+          username,
+          gender,
+          dob,
+        },
+      ]);
 
     if (profileError) throw profileError;
   }
 
-  return data.user;
+  return user;
 }
+
 
 // Login
 export async function loginAccount(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
   if (error) throw error;
   return data.user;
 }
+
 
 // Logout
 export async function logout() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
+
 
 // Get current user
 export async function getCurrentUser() {
@@ -56,7 +77,10 @@ export async function getCurrentUser() {
 }
 
 
-// ----- POSTS -----
+// ======================================================
+// POSTS
+// ======================================================
+
 // Add post
 export async function addPost(user_id, title, content) {
   try {
@@ -93,6 +117,7 @@ export async function addPost(user_id, title, content) {
   }
 }
 
+
 // Update post
 export async function updatePost(id, changes) {
   const { data, error } = await supabase
@@ -102,15 +127,20 @@ export async function updatePost(id, changes) {
     .select();
 
   if (error) throw error;
-  return data && data[0];
+  return data?.[0];
 }
+
 
 // Get all posts
 export async function getPosts() {
-  const { data, error } = await supabase.from('posts').select('*');
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*');
+
   if (error) throw error;
   return data;
 }
+
 
 // Get posts by user
 export async function getPostsByUser(user_id) {
@@ -124,26 +154,25 @@ export async function getPostsByUser(user_id) {
 }
 
 
-// ----- SAVED POSTS -----
-// Get saved post IDs
+// ======================================================
+// SAVED POSTS
+// ======================================================
+
 export async function getSavedPostIdsByUser(user_id) {
   const { data, error } = await supabase
     .from('saved_posts')
     .select('post_id')
     .eq('user_id', user_id);
 
-  if (error) {
-    console.error("Fetch saved IDs error:", error);
-    return [];
-  }
+  if (error) return [];
 
   return data.map((r) => r.post_id);
 }
 
-// Get full saved posts
+
 export async function getSavedPostsByUser(user_id) {
   const ids = await getSavedPostIdsByUser(user_id);
-  if (!ids || ids.length === 0) return [];
+  if (!ids.length) return [];
 
   const { data, error } = await supabase
     .from('posts')
@@ -154,17 +183,17 @@ export async function getSavedPostsByUser(user_id) {
   return data;
 }
 
-// Save post (NO DUPLICATES)
+
 export async function savePostForUser(user_id, post_id) {
   const { data, error } = await supabase
     .from('saved_posts')
-    .upsert([{ user_id, post_id }]); // ✅ FIXED
+    .upsert([{ user_id, post_id }]);
 
   if (error) throw error;
   return data;
 }
 
-// Remove saved post
+
 export async function removeSavedPostForUser(user_id, post_id) {
   const { data, error } = await supabase
     .from('saved_posts')
@@ -176,8 +205,10 @@ export async function removeSavedPostForUser(user_id, post_id) {
 }
 
 
-// ----- MESSAGES -----
-// Send message
+// ======================================================
+// MESSAGES
+// ======================================================
+
 export async function sendMessage(sender_id, receiver_id, message) {
   const { data, error } = await supabase
     .from('messages')
@@ -188,7 +219,7 @@ export async function sendMessage(sender_id, receiver_id, message) {
   return data;
 }
 
-// Get conversation
+
 export async function getMessages(user1_id, user2_id) {
   const { data, error } = await supabase
     .from('messages')
@@ -202,7 +233,7 @@ export async function getMessages(user1_id, user2_id) {
   return data;
 }
 
-// Get all messages for a user
+
 export async function getMessagesForUser(user_id) {
   const { data, error } = await supabase
     .from('messages')
