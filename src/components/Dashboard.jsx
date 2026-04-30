@@ -1,209 +1,505 @@
-import { useState, useRef, useEffect } from "react";
-import Post from "../pages/Post";
-import TrendingTopics from "../pages/TrendingTopics";
-import Topics from "../pages/Topics";
-import Saved from "../pages/Saved";
+import { useEffect, useState } from "react";
+import { FiMenu } from "react-icons/fi";
+import { getAccountProfile } from "../../supabase.js";
+import DashboardHeader from "./dashboard/DashboardHeader.jsx";
+import NotificationTray from "./dashboard/NotificationTray.jsx";
+import DashboardSidebar from "./dashboard/DashboardSidebar.jsx";
+import {
+  DASHBOARD_VIEWS,
+  MY_SPACE_TABS,
+  VIEW_META,
+  normalizeInitialView,
+} from "./dashboard/dashboardConfig.js";
+import DiscussionsView from "./dashboard/views/DiscussionsView.jsx";
+import MySpaceView from "./dashboard/views/MySpaceView.jsx";
+import NewChatView from "./dashboard/views/NewChatView.jsx";
 
-export default function Dashboard({ user, onLogout }) {
-  const [prompt, setPrompt] = useState("");
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: "Hi 👋 What would you like to study today?" },
-  ]);
+function createId(prefix) {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activePage, setActivePage] = useState("newPrompt"); // controls which page to show
-  const sidebarRef = useRef(null);
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
-  const sendPrompt = () => {
-    if (!prompt.trim()) return;
+function getDisplayName(user) {
+  const metadataName =
+    user?.user_metadata?.username ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name;
 
-    setMessages([
-      ...messages,
-      { role: "user", content: prompt },
-      { role: "assistant", content: "AI is thinking..." },
+  if (metadataName) return metadataName;
+  if (user?.email) return user.email.split("@")[0];
+  return "<USER_NAME>";
+}
+
+function getMetadataName(user) {
+  return (
+    user?.user_metadata?.username ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    ""
+  );
+}
+
+function createAssistantPlaceholder() {
+  return {
+    id: createId("assistant"),
+    role: "assistant",
+    content: "ai is thinking...",
+  };
+}
+
+function createEmptyChatSession() {
+  return {
+    id: createId("chat"),
+    title: "New chat",
+    updatedAt: Date.now(),
+    messages: [],
+  };
+}
+
+function createDiscussionPost({ authorImageAlt, authorImageSrc, authorName, content }) {
+  const trimmedContent = content.trim();
+
+  return {
+    id: createId("post"),
+    authorImageAlt,
+    authorImageSrc,
+    authorName,
+    content: trimmedContent,
+    createdAt: Date.now(),
+    likes: 0,
+    comments: 0,
+    saves: 0,
+  };
+}
+
+function createNotification({ detail, title }) {
+  return {
+    id: createId("notification"),
+    title,
+    detail,
+    timestamp: "Just now",
+    unread: true,
+  };
+}
+
+function waitForUiFeedback(duration = 700) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, duration);
+  });
+}
+
+const EMPTY_CHAT_MESSAGES = [];
+
+const DASHBOARD_VIEW_STORAGE_KEY = "learnsmart-dashboard-view";
+const MY_SPACE_TAB_STORAGE_KEY = "learnsmart-my-space-tab";
+
+export default function Dashboard({ user, onLogout, initialView }) {
+  const [activeView, setActiveView] = useState(() => {
+    const storedView =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(DASHBOARD_VIEW_STORAGE_KEY)
+        : null;
+
+    return normalizeInitialView(initialView || storedView);
+  });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatSessions, setChatSessions] = useState([]);
+  const [activeChatId, setActiveChatId] = useState(null);
+  const [discussionPosts, setDiscussionPosts] = useState([]);
+  const [likedPostIds, setLikedPostIds] = useState([]);
+  const [savedPostIds, setSavedPostIds] = useState([]);
+  const [commentedPostIds, setCommentedPostIds] = useState([]);
+  const [isNotificationTrayOpen, setIsNotificationTrayOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [mySpaceTab, setMySpaceTab] = useState(() => {
+    const storedTab =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(MY_SPACE_TAB_STORAGE_KEY)
+        : null;
+
+    return MY_SPACE_TABS.some((tab) => tab.id === storedTab) ? storedTab : MY_SPACE_TABS[0].id;
+  });
+  const [profile, setProfile] = useState(() => ({
+    displayName: getDisplayName(user),
+    bio: "",
+    imageSrc: "",
+    imageAlt: "<INSERT PROFILE IMAGE HERE>",
+  }));
+
+  useEffect(() => {
+    if (!initialView) return;
+    setActiveView(normalizeInitialView(initialView));
+  }, [initialView]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(DASHBOARD_VIEW_STORAGE_KEY, activeView);
+  }, [activeView]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(MY_SPACE_TAB_STORAGE_KEY, mySpaceTab);
+  }, [mySpaceTab]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncDisplayName() {
+      const metadataName = getMetadataName(user);
+
+      if (metadataName) {
+        if (cancelled) return;
+        setProfile((currentProfile) => ({
+          ...currentProfile,
+          displayName: metadataName,
+        }));
+        return;
+      }
+
+      if (!user?.id) {
+        if (cancelled) return;
+        setProfile((currentProfile) => ({
+          ...currentProfile,
+          displayName: getDisplayName(user),
+        }));
+        return;
+      }
+
+      try {
+        const accountProfile = await getAccountProfile(user.id);
+        if (cancelled) return;
+
+        setProfile((currentProfile) => ({
+          ...currentProfile,
+          displayName: accountProfile?.username || getDisplayName(user),
+        }));
+      } catch {
+        if (cancelled) return;
+        setProfile((currentProfile) => ({
+          ...currentProfile,
+          displayName: getDisplayName(user),
+        }));
+      }
+    }
+
+    syncDisplayName();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const activeChat = chatSessions.find((chat) => chat.id === activeChatId) || null;
+  const currentMessages = activeChat?.messages?.length ? activeChat.messages : EMPTY_CHAT_MESSAGES;
+  const recentChats = [...chatSessions].sort((left, right) => right.updatedAt - left.updatedAt);
+  const activeMeta = VIEW_META[activeView] || VIEW_META[DASHBOARD_VIEWS.NEW_CHAT];
+  const displayName = profile.displayName?.trim() || "<USER_NAME>";
+  const isChatView = activeView === DASHBOARD_VIEWS.NEW_CHAT;
+  const isEmptyDraftChat = isChatView && (!activeChat || activeChat.messages.length === 0);
+  const unreadNotificationCount = notifications.filter((notification) => notification.unread).length;
+
+  function closeSidebar() {
+    setIsSidebarOpen(false);
+  }
+
+  function openNotifications() {
+    setIsNotificationTrayOpen(true);
+    setNotifications((currentNotifications) =>
+      currentNotifications.map((notification) => ({
+        ...notification,
+        unread: false,
+      })),
+    );
+  }
+
+  function closeNotifications() {
+    setIsNotificationTrayOpen(false);
+  }
+
+  function openView(viewId) {
+    setActiveView(viewId);
+    closeSidebar();
+  }
+
+  function handleNewChat() {
+    if (activeChat && activeChat.messages.length === 0) {
+      setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
+      setChatInput("");
+      closeSidebar();
+      return;
+    }
+
+    const nextChat = createEmptyChatSession();
+
+    setActiveChatId(nextChat.id);
+    setChatSessions((currentSessions) => [nextChat, ...currentSessions]);
+    setChatInput("");
+    setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
+    closeSidebar();
+  }
+
+  function handleChatSubmit() {
+    const trimmedInput = chatInput.trim();
+
+    if (!trimmedInput) return;
+
+    const targetId = activeChatId || createId("chat");
+    const userMessage = {
+      id: createId("message"),
+      role: "user",
+      content: trimmedInput,
+    };
+
+    setActiveChatId(targetId);
+    setChatSessions((currentSessions) => {
+      const existingSession = currentSessions.find((session) => session.id === targetId);
+      const nextMessages = existingSession
+        ? [...existingSession.messages, userMessage, createAssistantPlaceholder()]
+        : [userMessage, createAssistantPlaceholder()];
+      const nextSession = {
+        id: targetId,
+        title:
+          !existingSession?.title || existingSession.title === "New chat"
+            ? trimmedInput
+            : existingSession.title,
+        updatedAt: Date.now(),
+        messages: nextMessages,
+      };
+      const remainingSessions = currentSessions.filter((session) => session.id !== targetId);
+
+      return [nextSession, ...remainingSessions];
+    });
+
+    setChatInput("");
+  }
+
+  function handleRecentChatSelect(chatId) {
+    setActiveChatId(chatId);
+    setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
+    closeSidebar();
+  }
+
+  async function handleCreatePost(content) {
+    await waitForUiFeedback();
+
+    const nextPost = createDiscussionPost({
+      authorImageAlt: profile.imageAlt,
+      authorImageSrc: profile.imageSrc,
+      authorName: displayName,
+      content,
+    });
+
+    setDiscussionPosts((currentPosts) => [nextPost, ...currentPosts]);
+    return nextPost;
+  }
+
+  function handleLikePost(postId) {
+    if (likedPostIds.includes(postId)) return;
+
+    setLikedPostIds((currentLikedPostIds) => [...currentLikedPostIds, postId]);
+    setDiscussionPosts((currentPosts) =>
+      currentPosts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              likes: post.likes + 1,
+            }
+          : post,
+      ),
+    );
+    setNotifications((currentNotifications) => [
+      createNotification({
+        title: "New like on your post",
+        detail: `${displayName} liked one of your discussion posts.`,
+      }),
+      ...currentNotifications,
+    ]);
+  }
+
+  async function handleSavePost(postId) {
+    if (savedPostIds.includes(postId)) return false;
+
+    await waitForUiFeedback();
+    setSavedPostIds((currentSavedPostIds) => [...currentSavedPostIds, postId]);
+    setDiscussionPosts((currentPosts) =>
+      currentPosts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              saves: post.saves + 1,
+            }
+          : post,
+      ),
+    );
+
+    return true;
+  }
+
+  async function handleCommentPost(postId) {
+    if (commentedPostIds.includes(postId)) return false;
+
+    await waitForUiFeedback();
+    setCommentedPostIds((currentCommentedPostIds) => [...currentCommentedPostIds, postId]);
+    setDiscussionPosts((currentPosts) =>
+      currentPosts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              comments: post.comments + 1,
+            }
+          : post,
+      ),
+    );
+    setNotifications((currentNotifications) => [
+      createNotification({
+        title: "New comment on your post",
+        detail: `${displayName} commented on one of your discussion posts.`,
+      }),
+      ...currentNotifications,
     ]);
 
-    setPrompt("");
-  };
+    return true;
+  }
 
-  // Close sidebar if clicked outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
-        setSidebarOpen(false);
-      }
+  function handleProfileFieldChange(field, value) {
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      [field]: value,
+    }));
+  }
+
+  function handleProfileImageUpload(event) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const imageResult = typeof reader.result === "string" ? reader.result : "";
+
+      setProfile((currentProfile) => ({
+        ...currentProfile,
+        imageSrc: imageResult,
+        imageAlt: file.name || "<INSERT PROFILE IMAGE HERE>",
+      }));
     };
-    if (sidebarOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [sidebarOpen]);
 
-  // ===== Render main content based on activePage =====
-  const renderMain = () => {
-    switch (activePage) {
-      case "newPrompt":
-        return (
-          <div className="flex-1 flex flex-col">
-            <div className="p-4 flex justify-center">
-              <input
-                placeholder="Looking for something?"
-                className="flex-1 max-w-xl px-6 py-3 rounded-full bg-white/40 backdrop-blur border border-white/50 focus:outline-none focus:ring-2 focus:ring-rose-400"
-              />
-            </div>
+    reader.readAsDataURL(file);
+  }
 
-            <div className="flex-1 overflow-y-auto px-6 space-y-6">
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`max-w-3xl ${msg.role === "user" ? "ml-auto text-right" : ""}`}
-                >
-                  <div
-                    className={`inline-block px-5 py-3 rounded-2xl shadow ${
-                      msg.role === "user"
-                        ? "bg-gradient-to-r from-rose-400 to-orange-400 text-white"
-                        : "bg-white/40 backdrop-blur text-gray-900"
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-6">
-              <div className="max-w-3xl mx-auto flex gap-3">
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  rows={1}
-                  placeholder="Ask anything about your studies..."
-                  className="flex-1 resize-none rounded-xl px-4 py-3 bg-white/40 backdrop-blur border border-white/50 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                />
-                <button
-                  onClick={sendPrompt}
-                  className="px-6 rounded-xl bg-gradient-to-r from-rose-400 to-orange-400 text-white font-semibold hover:opacity-90 transition"
-                >
-                  Send
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      case "post":
-        return <Post user={user} />; // Pass user so Post can render
-      case "trending":
-        return <TrendingTopics user={user} />; // Optional: pass user for interactions
-      case "topics":
-        return <Topics user={user} />; // Optional
-      case "saved":
-        return <Saved user={user} />; // Pass user to fetch saved posts
-      default:
-        return <Post user={user} />;
+  function renderView() {
+    if (activeView === DASHBOARD_VIEWS.NEW_CHAT) {
+      return (
+        <NewChatView
+          chatInput={chatInput}
+          displayName={displayName}
+          messages={currentMessages}
+          onChatInputChange={setChatInput}
+          onSubmit={handleChatSubmit}
+        />
+      );
     }
-  };
+
+    if (activeView === DASHBOARD_VIEWS.DISCUSSIONS) {
+      return (
+        <DiscussionsView
+          commentedPostIds={commentedPostIds}
+          likedPostIds={likedPostIds}
+          posts={discussionPosts}
+          savedPostIds={savedPostIds}
+          onCommentPost={handleCommentPost}
+          onLikePost={handleLikePost}
+          onSavePost={handleSavePost}
+        />
+      );
+    }
+
+    return (
+      <MySpaceView
+        activeTab={mySpaceTab}
+        displayName={displayName}
+        likedPostIds={likedPostIds}
+        posts={discussionPosts}
+        profile={profile}
+        savedPostIds={savedPostIds}
+        userEmail={user?.email || "<USER_EMAIL>"}
+        onCreatePost={handleCreatePost}
+        onProfileFieldChange={handleProfileFieldChange}
+        onProfileImageUpload={handleProfileImageUpload}
+        onTabChange={setMySpaceTab}
+      />
+    );
+  }
 
   return (
-    <div className="relative min-h-screen flex overflow-hidden">
-      {/* ===== BACKGROUND ===== */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-pink-300 via-rose-300 to-orange-300 animate-gradient" />
-        <div className="absolute inset-0 bg-dot-grid opacity-40 animate-grid" />
+    <div className="relative min-h-screen overflow-hidden bg-neutral-950 text-neutral-100">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_transparent_32%),linear-gradient(135deg,rgba(10,10,10,1)_0%,rgba(24,24,27,1)_54%,rgba(9,9,11,1)_100%)]" />
+        <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-white/8 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-white/6 blur-3xl" />
+        <div className="absolute inset-0 bg-dot-grid opacity-20 animate-grid" />
       </div>
 
-      {/* ===== SIDEBAR ===== */}
-      <aside
-        ref={sidebarRef}
-        className={`fixed top-0 left-0 z-20 h-full w-64 bg-white/20 backdrop-blur-xl border-r border-white/30 flex flex-col p-4 gap-6 transform transition-transform duration-300 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+      <div
+        className={[
+          "fixed inset-0 z-30 bg-black/50 transition",
+          isSidebarOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+        ].join(" ")}
+        onClick={closeSidebar}
+        aria-hidden="true"
+      />
+
+      <DashboardSidebar
+        activeChatId={activeChatId}
+        activeView={activeView}
+        isEmptyDraftChat={isEmptyDraftChat}
+        isOpen={isSidebarOpen}
+        profile={profile}
+        recentChats={recentChats}
+        user={user}
+        onClose={closeSidebar}
+        onLogout={onLogout}
+        onNewChat={handleNewChat}
+        onSelectChat={handleRecentChatSelect}
+        onSelectView={openView}
+      />
+
+      <NotificationTray
+        isOpen={isNotificationTrayOpen}
+        notifications={notifications}
+        onClose={closeNotifications}
+      />
+
+      <button
+        type="button"
+        onClick={() => setIsSidebarOpen(true)}
+        className={[
+          "fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.06] text-neutral-300 transition hover:bg-white/[0.1] hover:text-white",
+          isSidebarOpen ? "pointer-events-none opacity-0" : "opacity-100",
+        ].join(" ")}
+        aria-label="Open sidebar"
       >
-        <h2 className="text-xl font-bold text-gray-900">LearnSmart</h2>
+        <FiMenu />
+      </button>
 
-        <button className="sidebar-btn" onClick={() => setActivePage("newPrompt")}>
-          New Prompt
-        </button>
-        <button className="sidebar-btn" onClick={() => setActivePage("trending")}>
-          Trending Topics
-        </button>
-        <button className="sidebar-btn" onClick={() => setActivePage("post")}>
-          Post a Question
-        </button>
-        <button className="sidebar-btn" onClick={() => setActivePage("saved")}>
-          Saved
-        </button>
+      <div className="relative flex min-h-screen flex-col">
+        <DashboardHeader
+          activeMeta={activeMeta}
+          displayName={displayName}
+          hasUnreadNotifications={unreadNotificationCount > 0}
+          notificationCount={notifications.length}
+          onNotificationsClick={openNotifications}
+        />
 
-        <button
-          onClick={onLogout}
-          className="sidebar-btn mt-auto bg-red-600 text-white hover:bg-red-700"
-        >
-          Logout
-        </button>
-
-        <div className="text-xs text-gray-600">
-          Logged in as
-          <div className="font-semibold truncate">{user?.email}</div>
-        </div>
-
-        <button
-          onClick={() => setSidebarOpen(false)}
-          className="absolute top-1/2 -right-4 w-8 h-12 bg-white/30 backdrop-blur rounded-l-lg flex items-center justify-center hover:bg-white/50 transition"
-        >
-          ❮
-        </button>
-      </aside>
-
-      {/* ===== TOGGLE ARROW WHEN SIDEBAR CLOSED ===== */}
-      {!sidebarOpen && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="fixed top-1/2 left-0 z-30 w-8 h-12 bg-white/30 backdrop-blur rounded-r-lg flex items-center justify-center hover:bg-white/50 transition"
-        >
-          ❯
-        </button>
-      )}
-
-      {/* ===== MAIN AREA ===== */}
-      <main className="flex-1 flex flex-col ml-0 md:ml-0">{renderMain()}</main>
-
-      {/* ===== STYLES ===== */}
-      <style>{`
-        .bg-dot-grid {
-          background-image: radial-gradient(rgba(255,255,255,0.45) 1px, transparent 1px);
-          background-size: 26px 26px;
-        }
-
-        @keyframes grid-float {
-          0% { transform: translate(0,0); }
-          50% { transform: translate(-12px,-12px); }
-          100% { transform: translate(0,0); }
-        }
-
-        .animate-grid {
-          animation: grid-float 40s ease-in-out infinite;
-        }
-
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 18s ease infinite;
-        }
-
-        .sidebar-btn {
-          padding: 0.75rem;
-          border-radius: 0.75rem;
-          background: rgba(255,255,255,0.4);
-          transition: all 0.2s;
-          font-weight: 500;
-        }
-
-        .sidebar-btn:hover {
-          background: rgba(255,255,255,0.7);
-        }
-      `}</style>
+        <main className="flex-1 px-4 pb-4 pt-2 sm:px-6">
+          <div className={isChatView ? "w-full" : "mx-auto w-full max-w-4xl"}>{renderView()}</div>
+        </main>
+      </div>
     </div>
   );
 }

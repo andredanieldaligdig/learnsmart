@@ -78,11 +78,11 @@ export default function Post({ user, onLogout }) {
           value={newPost}
           onChange={(e) => setNewPost(e.target.value)}
           placeholder="Share something..."
-          className="w-full p-4 rounded-xl bg-white/40 backdrop-blur border border-white/50 focus:outline-none focus:ring-2 focus:ring-rose-400"
+          className="w-full p-4 rounded-xl bg-slate-800/60 backdrop-blur border border-slate-700/60 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-400"
         />
         <button
           onClick={handleAddPost}
-          className="mt-2 px-6 py-2 bg-gradient-to-r from-rose-400 to-orange-400 text-white rounded-xl font-semibold hover:opacity-90 transition"
+          className="mt-2 px-6 py-2 bg-blue-500 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition"
         >
           Post
         </button>
@@ -100,13 +100,13 @@ export default function Post({ user, onLogout }) {
               .slice(0, 10);
 
             if (list.length === 0) {
-              return <p className="text-center text-gray-600">No posts yet.</p>;
+              return <p className="text-center text-slate-300/80">No posts yet.</p>;
             }
 
             return list.map((p) => (
               <div
                 key={p.id}
-                className="bg-white/40 backdrop-blur rounded-2xl p-4 shadow flex flex-col gap-2"
+                className="bg-slate-800/60 backdrop-blur rounded-2xl p-4 shadow border border-slate-700/60 flex flex-col gap-2"
               >
                 <p className="font-semibold">{p.author}</p>
                 <p>{p.content}</p>
@@ -115,13 +115,17 @@ export default function Post({ user, onLogout }) {
                 <div className="flex gap-4 mt-2">
                   <button
                     onClick={() => toggleLike(p.id)}
-                    className="px-3 py-1 bg-rose-200/60 rounded-full hover:bg-rose-300 transition"
+                    className="px-3 py-1 bg-slate-900/40 border border-slate-700/60 text-slate-100 rounded-full hover:bg-slate-700/50 transition"
                   >
                     ❤️ {p.likes}
                   </button>
                   <button
                     onClick={() => toggleSave(p.id)}
-                    className="relative z-40 pointer-events-auto px-3 py-1 bg-amber-200/60 rounded-full hover:bg-amber-300 transition"
+                    className={`relative z-40 pointer-events-auto px-3 py-1 rounded-full border transition ${
+                      p.saved
+                        ? "bg-blue-500 text-white border-blue-400/30 hover:bg-blue-600"
+                        : "bg-slate-900/40 text-slate-100 border-slate-700/60 hover:bg-slate-700/50"
+                    }`}
                   >
                     💾 {p.saved ? "Saved" : "Save"}
                   </button>
@@ -130,7 +134,7 @@ export default function Post({ user, onLogout }) {
                 {/* Comments */}
                 <div className="mt-2 space-y-2">
                   {(p.comments || []).map((c, i) => (
-                    <p key={i} className="text-sm text-gray-700">
+                    <p key={i} className="text-sm text-slate-300/80">
                       <span className="font-semibold">{c.user}:</span> {c.text}
                     </p>
                   ))}
@@ -162,11 +166,11 @@ function CommentInput({ postId, addComment, user }) {
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         placeholder="Add a comment..."
-        className="flex-1 px-3 py-1 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+        className="flex-1 px-3 py-1 rounded-lg bg-slate-900/40 border border-slate-700/60 text-slate-100 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-400"
       />
       <button
         onClick={handleAdd}
-        className="px-3 py-1 bg-rose-400 text-white rounded-lg text-sm hover:opacity-90 transition"
+        className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition"
       >
         Post
       </button>

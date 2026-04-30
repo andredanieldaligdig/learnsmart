@@ -17,7 +17,7 @@ export default function Topics() {
 
   return (
     <div className="flex-1 p-6 max-w-3xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">
+      <h2 className="text-2xl font-bold text-slate-100 mb-4">
         Topics
       </h2>
 
@@ -26,7 +26,7 @@ export default function Topics() {
           <button
             key={i}
             onClick={() => handleClick(t)}
-            className="bg-white/40 backdrop-blur rounded-xl px-4 py-3 font-semibold text-gray-900 hover:bg-white/70 transition shadow"
+            className="bg-slate-800/60 backdrop-blur rounded-xl px-4 py-3 font-semibold text-slate-100 border border-slate-700/60 hover:bg-slate-700/50 transition shadow"
           >
             {t}
           </button>

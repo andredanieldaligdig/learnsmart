@@ -18,12 +18,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // AUTH
 // ======================================================
 
-// Signup new user (FIXED VERSION)
-export async function createAccount(email, password, username, gender, dob) {
+// Signup new user
+export async function createAccount(email, password, displayName, gender, dob) {
   // 1. Create auth user
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      data: {
+        name: displayName,
+        full_name: displayName,
+        username: displayName,
+      },
+    },
   });
 
   if (error) throw error;
@@ -38,7 +45,7 @@ export async function createAccount(email, password, username, gender, dob) {
         {
           id: user.id,
           email,
-          username,
+          username: displayName,
           gender,
           dob,
         },
@@ -48,6 +55,17 @@ export async function createAccount(email, password, username, gender, dob) {
   }
 
   return user;
+}
+
+export async function getAccountProfile(userId) {
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("username")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
 }
 
 

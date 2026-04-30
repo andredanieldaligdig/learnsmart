@@ -8,17 +8,14 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState("login"); 
+  const [mode, setMode] = useState("login");
 
   const navigate = useNavigate();
-  
 
   const handleAction = async () => {
     setError("");
     setMessage("");
     setLoading(true);
-
-    
 
     try {
       if (mode === "login") {
@@ -29,7 +26,7 @@ export default function Login({ onLogin }) {
 
         const user = await loginAccount(email, password);
         onLogin(user);
-        navigate("/"); 
+        navigate("/", { state: { postLoginSplash: true } });
 
       } else if (mode === "forgot") {
         if (!email) {
@@ -68,26 +65,29 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden flex items-center justify-center">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950">
 
       {/* BACKGROUND */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-pink-300 via-rose-300 to-orange-300 animate-gradient" />
-        <div className="absolute inset-0 bg-dot-grid opacity-40 animate-grid" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_transparent_32%),linear-gradient(135deg,rgba(10,10,10,1)_0%,rgba(24,24,27,1)_54%,rgba(9,9,11,1)_100%)] animate-gradient" />
+        <div className="absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/8 blur-3xl" />
+        <div className="absolute -bottom-40 -left-32 h-96 w-96 rounded-full bg-white/6 blur-3xl" />
+        <div className="absolute inset-0 bg-dot-grid opacity-20 animate-grid" />
       </div>
 
       {/* CARD */}
-      <div className="relative w-full max-w-md bg-white/20 backdrop-blur-2xl border border-white/30 rounded-3xl shadow-[0_30px_80px_rgba(0,0,0,0.25)] p-8">
+      <div className="relative w-full max-w-md rounded-[32px] border border-white/10 bg-neutral-950/72 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
 
         {/* TITLE */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <div className="mb-10 text-center">
+          <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">LearnSmart</p>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-white">
             {mode === "login" && "LearnSmart"}
             {mode === "forgot" && "Forgot Password"}
             {mode === "reset" && "Reset Password"}
           </h1>
-          <p className="text-sm text-gray-700/70 mt-2">
-            {mode === "login" && "Smart study. Elevated."}
+          <p className="mt-2 text-sm text-neutral-400">
+            {mode === "login" && "AI chat workspace for focused learning."}
             {mode === "forgot" && "Enter your email to reset password"}
             {mode === "reset" && "Enter your new password"}
           </p>
@@ -103,11 +103,11 @@ export default function Login({ onLogin }) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleAction()}
+                onKeyDown={(e) => e.key === "Enter" && handleAction()}
                 placeholder="Email"
-                className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder-transparent"
+                className="peer w-full rounded-[24px] border border-white/10 bg-white/[0.04] px-4 pb-3 pt-6 text-white placeholder-transparent focus:border-white/18 focus:outline-none focus:ring-2 focus:ring-white/12"
               />
-              <label className="absolute left-4 top-3 text-gray-600 text-sm transition-all duration-300 peer-focus:-translate-y-2 peer-focus:scale-90 peer-focus:text-rose-600 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
+              <label className="absolute left-4 top-3 text-sm text-neutral-500 transition-all duration-300 peer-focus:-translate-y-2 peer-focus:scale-90 peer-focus:text-neutral-300 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
                 Email
               </label>
             </div>
@@ -120,11 +120,11 @@ export default function Login({ onLogin }) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleAction()}
+                onKeyDown={(e) => e.key === "Enter" && handleAction()}
                 placeholder={mode === "reset" ? "New Password" : "Password"}
-                className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400 placeholder-transparent"
+                className="peer w-full rounded-[24px] border border-white/10 bg-white/[0.04] px-4 pb-3 pt-6 text-white placeholder-transparent focus:border-white/18 focus:outline-none focus:ring-2 focus:ring-white/12"
               />
-              <label className="absolute left-4 top-2 text-gray-600 text-sm transition-all duration-300 peer-focus:-translate-y-1 peer-focus:scale-90 peer-focus:text-orange-600 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
+              <label className="absolute left-4 top-2 text-sm text-neutral-500 transition-all duration-300 peer-focus:-translate-y-1 peer-focus:scale-90 peer-focus:text-neutral-300 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
                 {mode === "reset" ? "New Password" : "Password"}
               </label>
             </div>
@@ -132,13 +132,13 @@ export default function Login({ onLogin }) {
 
           {/* ERROR / MESSAGE */}
           {error && <p className="text-red-500 text-sm">{error}</p>}
-          {message && <p className="text-green-600 text-sm">{message}</p>}
+          {message && <p className="text-emerald-400 text-sm">{message}</p>}
 
           {/* BUTTON */}
           <button
             onClick={handleAction}
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-400 to-orange-400 text-white font-semibold shadow-lg hover:opacity-90 transition"
+            className="w-full rounded-[24px] border border-white/12 bg-white py-3 font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-60"
           >
             {loading
               ? "Processing..."
@@ -148,15 +148,15 @@ export default function Login({ onLogin }) {
               ? "Send Reset Link"
               : "Update Password"}
           </button>
-        </div>
+      </div>
 
-        {/* LINKS */}
-        <div className="mt-4 text-center text-sm text-gray-500">
+      {/* LINKS */}
+      <div className="mt-4 text-center text-sm text-neutral-400">
 
           {mode === "login" && (
             <>
               <p
-                className="text-blue-500 cursor-pointer"
+                className="cursor-pointer text-neutral-200 transition hover:text-white"
                 onClick={() => setMode("forgot")}
               >
                 Forgot Password?
@@ -165,7 +165,7 @@ export default function Login({ onLogin }) {
               <p className="mt-2">
                 Don't have an account?{" "}
                 <span
-                  className="text-blue-500 cursor-pointer"
+                  className="cursor-pointer text-neutral-200 transition hover:text-white"
                   onClick={() => navigate("/signup")}
                 >
                   Sign Up
@@ -176,7 +176,7 @@ export default function Login({ onLogin }) {
 
           {mode !== "login" && (
             <p
-              className="text-blue-500 cursor-pointer"
+              className="cursor-pointer text-neutral-200 transition hover:text-white"
               onClick={() => setMode("login")}
             >
               Back to Login
@@ -184,41 +184,6 @@ export default function Login({ onLogin }) {
           )}
         </div>
       </div>
-
-
-
-
-      {/* ANIMATIONS */}
-      <style>{`
-        .bg-dot-grid {
-          background-image: radial-gradient(
-            rgba(255,255,255,0.45) 1px,
-            transparent 1px
-          );
-          background-size: 26px 26px;
-        }
-
-        @keyframes grid-float {
-          0% { transform: translate(0,0); }
-          50% { transform: translate(-12px,-12px); }
-          100% { transform: translate(0,0); }
-        }
-
-        .animate-grid {
-          animation: grid-float 40s ease-in-out infinite;
-        }
-
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0 50%; }
-        }
-
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 18s ease infinite;
-        }
-      `}</style>
     </div>
   );
 }

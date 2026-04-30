@@ -2,10 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    color-scheme: dark;
+    font-family: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-neutral-950 text-neutral-100 antialiased;
+  }
+
+  * {
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    background-color: rgba(255, 255, 255, 0.16);
+  }
+}
+
 /* Dot grid */
 .bg-dot-grid {
   background-image: radial-gradient(
-    rgba(255, 255, 255, 0.35) 1px,
+    rgba(148, 163, 184, 0.22) 1px,
     transparent 1px
   );
   background-size: 24px 24px;
@@ -42,6 +79,23 @@
 .animate-gradient-x {
   background-size: 200% 200%;
   animation: gradient-x 15s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 18s ease infinite;
 }
 
 

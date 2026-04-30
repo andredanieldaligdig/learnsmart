@@ -15,43 +15,43 @@ export default function ForgotPassword() {
     else setMessage("Check your email for reset link!");
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") handleReset();
-  };
-
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4">
       <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-pink-300 via-rose-300 to-orange-300 animate-gradient" />
-        <div className="absolute inset-0 bg-dot-grid opacity-40 animate-grid" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_transparent_32%),linear-gradient(135deg,rgba(10,10,10,1)_0%,rgba(24,24,27,1)_54%,rgba(9,9,11,1)_100%)] animate-gradient" />
+        <div className="absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/8 blur-3xl" />
+        <div className="absolute -bottom-40 -left-32 h-96 w-96 rounded-full bg-white/6 blur-3xl" />
+        <div className="absolute inset-0 bg-dot-grid opacity-20 animate-grid" />
       </div>
 
-      <div className="relative w-full max-w-md bg-white/20 backdrop-blur-2xl border border-white/30 rounded-3xl shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-gray-900 text-center mb-4">Forgot Password</h1>
-        <p className="text-center text-gray-700 mb-6">Enter your email to reset your password</p>
+      <div className="relative w-full max-w-md rounded-[32px] border border-white/10 bg-neutral-950/72 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+        <div className="mb-8 text-center">
+          <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">LearnSmart</p>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-white">Forgot password</h1>
+          <p className="mt-2 text-sm text-neutral-400">Enter your email to reset your password.</p>
+        </div>
 
-        <div className="relative mb-4">
+        <div className="space-y-4">
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onChange={(event) => setEmail(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") handleReset();
+            }}
             placeholder="Email"
-            className="peer w-full bg-white/40 border border-white/50 rounded-xl px-4 pt-6 pb-2 text-gray-900 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-rose-400"
+            className="w-full rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none placeholder:text-neutral-500"
           />
-          <label className="absolute left-4 top-2 text-gray-600 text-sm transition-all duration-300 peer-focus:-translate-y-2 peer-focus:scale-90 peer-focus:text-rose-600 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
-            Email
-          </label>
+
+          {message ? <p className="text-sm text-neutral-300">{message}</p> : null}
+
+          <button
+            onClick={handleReset}
+            className="w-full rounded-[24px] border border-white/12 bg-white py-3 font-semibold text-black transition hover:bg-neutral-200"
+          >
+            Send Reset Link
+          </button>
         </div>
-
-        {message && <p className="text-sm text-center text-gray-700 mb-4">{message}</p>}
-
-        <button
-          onClick={handleReset}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-rose-400 to-orange-400 text-white font-semibold shadow-lg hover:opacity-90 transition"
-        >
-          Send Reset Link
-        </button>
       </div>
     </div>
   );

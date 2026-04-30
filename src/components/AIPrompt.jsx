@@ -24,17 +24,17 @@ export default function AIPrompt({ user }) {
     <div className="flex flex-col h-screen">
       
       {/* Chat area */}
-      <div className="flex-1 overflow-y-auto bg-[#0b1f1f]/80 p-6 rounded-2xl shadow-lg border border-white/10 space-y-4">
+      <div className="flex-1 overflow-y-auto bg-slate-800/60 backdrop-blur p-6 rounded-2xl shadow-lg border border-slate-700/60 space-y-4">
         {messages.length === 0 && (
-          <p className="text-emerald-300/50 text-center mt-10">Start by asking a question...</p>
+          <p className="text-slate-300/60 text-center mt-10">Start by asking a question...</p>
         )}
         {messages.map((msg, i) => (
           <div
             key={i}
             className={`p-4 rounded-xl max-w-[70%] ${
               msg.from === "ai"
-                ? "bg-emerald-800/50 self-start text-white"
-                : "bg-emerald-400/40 self-end text-black"
+                ? "bg-slate-900/40 border border-slate-700/60 self-start text-slate-100"
+                : "bg-blue-500 self-end text-white"
             }`}
           >
             {msg.text}
@@ -49,12 +49,12 @@ export default function AIPrompt({ user }) {
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          className="flex-1 rounded-xl px-4 py-3 bg-black/30 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+          className="flex-1 rounded-xl px-4 py-3 bg-slate-900/40 border border-slate-700/60 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-400"
           placeholder="Ask a question..."
         />
         <button
           onClick={handleSend}
-          className="bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-xl font-semibold shadow-lg transition"
+          className="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-xl font-semibold shadow-lg shadow-blue-500/20 text-white transition"
         >
           Send
         </button>

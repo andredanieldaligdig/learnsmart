@@ -8,7 +8,7 @@ export default function CommentSection({ post }) {
   return (
     <div className="space-y-2">
       {post.comments.map((c, i) => (
-        <div key={i} className="text-sm bg-white/30 p-2 rounded-lg">
+        <div key={i} className="text-sm bg-slate-800/60 border border-slate-700/60 text-slate-100 p-2 rounded-lg">
           {c}
         </div>
       ))}
@@ -18,14 +18,14 @@ export default function CommentSection({ post }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Add a comment..."
-          className="flex-1 bg-white/30 rounded-lg px-3 py-1 outline-none"
+          className="flex-1 bg-slate-900/40 border border-slate-700/60 text-slate-100 placeholder-slate-400 rounded-lg px-3 py-1 outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-400"
         />
         <button
           onClick={() => {
             addComment(post.id, text);
             setText("");
           }}
-          className="text-sm bg-gradient-to-r from-rose-400 to-orange-400 text-white px-3 rounded-lg"
+          className="text-sm bg-blue-500 text-white px-3 rounded-lg shadow-lg shadow-blue-500/20 hover:bg-blue-600 transition"
         >
           Post
         </button>
