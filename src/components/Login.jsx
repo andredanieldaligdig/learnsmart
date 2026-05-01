@@ -1,7 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginAccount, supabase } from "../../supabase.js";
 import { DASHBOARD_VIEWS } from "./dashboard/dashboardConfig.js";
+
+const PHRASES = [
+  '"Finally understood derivatives after 3 years of confusion."',
+  '"Got into my dream med school. LearnSmart was my secret weapon."',
+  '"I went from failing to top of my class in one semester."',
+  '"It\'s like having a tutor available at 2am before finals."',
+  '"Every concept clicks now. I actually enjoy studying."',
+  '"Aced my board exams on the first try. Genuinely shocked."',
+];
+
+function useTypewriter(phrases) {
+  const [displayed, setDisplayed] = useState("");
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const current = phrases[phraseIndex];
+    let timeout;
+    if (!deleting) {
+      if (charIndex < current.length) {
+        timeout = setTimeout(() => {
+          setDisplayed(current.slice(0, charIndex + 1));
+          setCharIndex((c) => c + 1);
+        }, 38);
+      } else {
+        timeout = setTimeout(() => setDeleting(true), 2600);
+      }
+    } else {
+      if (charIndex > 0) {
+        timeout = setTimeout(() => {
+          setDisplayed(current.slice(0, charIndex - 1));
+          setCharIndex((c) => c - 1);
+        }, 18);
+      } else {
+        setDeleting(false);
+        setPhraseIndex((i) => (i + 1) % phrases.length);
+      }
+    }
+    return () => clearTimeout(timeout);
+  }, [charIndex, deleting, phraseIndex, phrases]);
+
+  return displayed;
+}
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -12,179 +56,332 @@ export default function Login({ onLogin }) {
   const [mode, setMode] = useState("login");
 
   const navigate = useNavigate();
+  const typed = useTypewriter(PHRASES);
 
   const handleAction = async () => {
     setError("");
     setMessage("");
     setLoading(true);
-
     try {
       if (mode === "login") {
-        if (!email || !password) {
-          setError("Please enter email and password");
-          return;
-        }
-
+        if (!email || !password) { setError("Please enter email and password"); setLoading(false); return; }
         const user = await loginAccount(email, password);
         onLogin(user);
         navigate("/", { state: { postLoginSplash: true, initialView: DASHBOARD_VIEWS.NEW_CHAT } });
-
       } else if (mode === "forgot") {
-        if (!email) {
-          setError("Enter your email");
-          return;
-        }
-
+        if (!email) { setError("Enter your email"); setLoading(false); return; }
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-         redirectTo: "https://your-vercel-app.vercel.app/reset-password",
-      });
-
-        if (error) throw error;
-        setMessage("Check your email for reset link!");
-
-      } else if (mode === "reset") {
-        if (!password) {
-          setError("Enter new password");
-          return;
-        }
-
-        const { error } = await supabase.auth.updateUser({
-          password: password,
+          redirectTo: "https://your-vercel-app.vercel.app/reset-password",
         });
-
+        if (error) throw error;
+        setMessage("Check your email for a reset link!");
+      } else if (mode === "reset") {
+        if (!password) { setError("Enter new password"); setLoading(false); return; }
+        const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
         setMessage("Password updated! You can now log in.");
         setMode("login");
       }
-
     } catch (err) {
-      console.error(err);
       setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleKey = (e) => { if (e.key === "Enter") handleAction(); };
+
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500&display=swap');
 
-      {/* BACKGROUND */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_transparent_32%),linear-gradient(135deg,rgba(10,10,10,1)_0%,rgba(24,24,27,1)_54%,rgba(9,9,11,1)_100%)] animate-gradient" />
-        <div className="absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/8 blur-3xl" />
-        <div className="absolute -bottom-40 -left-32 h-96 w-96 rounded-full bg-white/6 blur-3xl" />
-        <div className="absolute inset-0 bg-dot-grid opacity-20 animate-grid" />
-      </div>
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floatIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0; }
+        }
 
-      {/* CARD */}
-      <div className="relative w-full max-w-md rounded-[32px] border border-white/10 bg-neutral-950/72 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+        .ls-left  { animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+        .ls-right { animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both; }
+        .ls-stat-1 { animation: floatIn 0.8s ease 0.5s both; }
+        .ls-stat-2 { animation: floatIn 0.8s ease 0.7s both; }
+        .ls-stat-3 { animation: floatIn 0.8s ease 0.9s both; }
 
-        {/* TITLE */}
-        <div className="mb-10 text-center">
-          <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">LearnSmart</p>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight text-white">
-            {mode === "login" && "LearnSmart"}
-            {mode === "forgot" && "Forgot Password"}
-            {mode === "reset" && "Reset Password"}
-          </h1>
-          <p className="mt-2 text-sm text-neutral-400">
-            {mode === "login" && "AI chat workspace for focused learning."}
-            {mode === "forgot" && "Enter your email to reset password"}
-            {mode === "reset" && "Enter your new password"}
+        .ls-cursor {
+          display: inline-block;
+          width: 2px;
+          height: 1.1em;
+          background: rgba(255,255,255,0.5);
+          margin-left: 2px;
+          vertical-align: text-bottom;
+          animation: blink 0.95s step-end infinite;
+        }
+
+        .ls-input {
+          width: 100%;
+          background: rgba(255,255,255,0.035);
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 16px;
+          padding: 20px 16px 10px;
+          color: #fff;
+          font-size: 14px;
+          font-family: 'DM Sans', sans-serif;
+          font-weight: 400;
+          outline: none;
+          transition: border-color 0.2s, background 0.2s;
+        }
+        .ls-input:focus {
+          border-color: rgba(255,255,255,0.18);
+          background: rgba(255,255,255,0.055);
+        }
+      `}</style>
+
+      {/* ROOT */}
+      <div style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "#080808",
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+
+        {/* ───── LEFT: Login Card ───── */}
+        <div className="ls-left" style={{
+          width: 420,
+          flexShrink: 0,
+          background: "#0a0a0b",
+          borderRight: "1px solid rgba(255,255,255,0.05)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          padding: "56px 44px",
+          position: "relative",
+          zIndex: 2,
+        }}>
+          {/* subtle top glow */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.04), transparent)",
+          }} />
+
+          {/* Brand */}
+          <p style={{ fontSize: 10, letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: 36, fontWeight: 400 }}>
+            LearnSmart
           </p>
-        </div>
 
-        {/* INPUTS */}
-        <div className="space-y-6">
+          <h1 style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: mode === "login" ? "2.4rem" : "1.9rem",
+            fontWeight: 900,
+            color: "#fff",
+            lineHeight: 1.05,
+            letterSpacing: "-0.02em",
+            marginBottom: 6,
+          }}>
+            {mode === "login" && <>Welcome<br />back.</>}
+            {mode === "forgot" && "Forgot Password"}
+            {mode === "reset"  && "Reset Password"}
+          </h1>
 
-          {/* EMAIL */}
-          {mode !== "reset" && (
-            <div className="relative">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAction()}
-                placeholder="Email"
-                className="peer w-full rounded-[24px] border border-white/10 bg-white/[0.04] px-4 pb-3 pt-6 text-white placeholder-transparent focus:border-white/18 focus:outline-none focus:ring-2 focus:ring-white/12"
-              />
-              <label className="absolute left-4 top-3 text-sm text-neutral-500 transition-all duration-300 peer-focus:-translate-y-2 peer-focus:scale-90 peer-focus:text-neutral-300 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
-                Email
-              </label>
-            </div>
-          )}
-
-          {/* PASSWORD */}
-          {mode !== "forgot" && (
-            <div className="relative">
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAction()}
-                placeholder={mode === "reset" ? "New Password" : "Password"}
-                className="peer w-full rounded-[24px] border border-white/10 bg-white/[0.04] px-4 pb-3 pt-6 text-white placeholder-transparent focus:border-white/18 focus:outline-none focus:ring-2 focus:ring-white/12"
-              />
-              <label className="absolute left-4 top-2 text-sm text-neutral-500 transition-all duration-300 peer-focus:-translate-y-1 peer-focus:scale-90 peer-focus:text-neutral-300 peer-not-placeholder-shown:-translate-y-3 peer-not-placeholder-shown:scale-90">
-                {mode === "reset" ? "New Password" : "Password"}
-              </label>
-            </div>
-          )}
-
-          {/* ERROR / MESSAGE */}
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          {message && <p className="text-emerald-400 text-sm">{message}</p>}
-
-          {/* BUTTON */}
-          <button
-            onClick={handleAction}
-            disabled={loading}
-            className="w-full rounded-[24px] border border-white/12 bg-white py-3 font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-60"
-          >
-            {loading
-              ? "Processing..."
-              : mode === "login"
-              ? "Continue"
-              : mode === "forgot"
-              ? "Send Reset Link"
-              : "Update Password"}
-          </button>
-      </div>
-
-      {/* LINKS */}
-      <div className="mt-4 text-center text-sm text-neutral-400">
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", fontWeight: 300, marginBottom: 40, lineHeight: 1.5 }}>
+            {mode === "login"  && <>Your AI study companion<br />is ready when you are.</>}
+            {mode === "forgot" && "Enter your email to receive a reset link"}
+            {mode === "reset"  && "Enter your new password below"}
+          </p>
 
           {mode === "login" && (
-            <>
-              <p
-                className="cursor-pointer text-neutral-200 transition hover:text-white"
-                onClick={() => setMode("forgot")}
-              >
-                Forgot Password?
-              </p>
-
-              <p className="mt-2">
-                Don't have an account?{" "}
-                <span
-                  className="cursor-pointer text-neutral-200 transition hover:text-white"
-                  onClick={() => navigate("/signup")}
-                >
-                  Sign Up
-                </span>
-              </p>
-            </>
+            <div style={{ width: 32, height: 1, background: "rgba(255,255,255,0.1)", marginBottom: 36 }} />
           )}
 
-          {mode !== "login" && (
-            <p
-              className="cursor-pointer text-neutral-200 transition hover:text-white"
-              onClick={() => setMode("login")}
+          {/* Fields */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+            {mode !== "reset" && (
+              <div style={{ position: "relative" }}>
+                <label style={{
+                  position: "absolute", left: 16, top: 10,
+                  fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase",
+                  color: "rgba(255,255,255,0.25)", pointerEvents: "none",
+                }}>Email</label>
+                <input
+                  className="ls-input"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={handleKey}
+                />
+              </div>
+            )}
+
+            {mode !== "forgot" && (
+              <div style={{ position: "relative" }}>
+                <label style={{
+                  position: "absolute", left: 16, top: 10,
+                  fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase",
+                  color: "rgba(255,255,255,0.25)", pointerEvents: "none",
+                }}>
+                  {mode === "reset" ? "New Password" : "Password"}
+                </label>
+                <input
+                  className="ls-input"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={handleKey}
+                />
+              </div>
+            )}
+
+            {error && (
+              <p style={{
+                background: "rgba(255,80,80,0.07)", border: "1px solid rgba(255,80,80,0.12)",
+                borderRadius: 12, padding: "10px 14px", fontSize: 12, color: "rgba(255,120,120,0.9)",
+              }}>{error}</p>
+            )}
+            {message && (
+              <p style={{
+                background: "rgba(80,220,140,0.07)", border: "1px solid rgba(80,220,140,0.12)",
+                borderRadius: 12, padding: "10px 14px", fontSize: 12, color: "rgba(100,230,160,0.9)",
+              }}>{message}</p>
+            )}
+
+            <button
+              onClick={handleAction}
+              disabled={loading}
+              style={{
+                width: "100%", borderRadius: 16, border: "1px solid rgba(255,255,255,0.12)",
+                background: "#fff", color: "#000", fontFamily: "'DM Sans', sans-serif",
+                fontSize: 14, fontWeight: 500, padding: "15px", cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.45 : 1, marginTop: 4,
+                transition: "background 0.15s",
+              }}
             >
-              Back to Login
+              {loading ? "Please wait…" : mode === "login" ? "Continue →" : mode === "forgot" ? "Send Reset Link" : "Update Password"}
+            </button>
+          </div>
+
+          {/* Links */}
+          <div style={{ marginTop: 20, textAlign: "center" }}>
+            {mode === "login" && (
+              <>
+                <p onClick={() => setMode("forgot")} style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", cursor: "pointer", marginBottom: 8 }}>
+                  Forgot password?
+                </p>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>
+                  Don't have an account?{" "}
+                  <span onClick={() => navigate("/signup")} style={{ color: "rgba(255,255,255,0.55)", cursor: "pointer" }}>
+                    Sign up
+                  </span>
+                </p>
+              </>
+            )}
+            {mode !== "login" && (
+              <p onClick={() => setMode("login")} style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", cursor: "pointer" }}>
+                ← Back to sign in
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* ───── RIGHT: Hero Panel ───── */}
+        <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center", overflow: "hidden" }}>
+
+          {/* Background */}
+          <div style={{
+            position: "absolute", inset: 0,
+            background: `
+              radial-gradient(ellipse 70% 55% at 75% 30%, rgba(255,255,255,0.055), transparent),
+              radial-gradient(ellipse 50% 40% at 20% 80%, rgba(255,255,255,0.025), transparent),
+              #0d0d0f
+            `,
+          }} />
+
+          {/* Grid overlay */}
+          <div style={{
+            position: "absolute", inset: 0,
+            backgroundImage: `
+              linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)
+            `,
+            backgroundSize: "48px 48px",
+            WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 70% 40%, black 20%, transparent 75%)",
+            maskImage: "radial-gradient(ellipse 80% 80% at 70% 40%, black 20%, transparent 75%)",
+          }} />
+
+          {/* Floating stat cards */}
+          {[
+            { cls: "ls-stat-1", top: "10%",   right: "10%", num: "94%",  label: "Pass rate" },
+            { cls: "ls-stat-2", bottom: "18%", right: "8%",  num: "2.4×", label: "Faster recall" },
+            { cls: "ls-stat-3", top: "40%",   right: "3%",  num: "50k+", label: "Students" },
+          ].map(({ cls, top, bottom, right, num, label }) => (
+            <div key={label} className={cls} style={{
+              position: "absolute", top, bottom, right,
+              border: "1px solid rgba(255,255,255,0.06)",
+              background: "rgba(255,255,255,0.03)",
+              borderRadius: 14, padding: "14px 20px",
+              backdropFilter: "blur(12px)",
+            }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.5rem", fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>{num}</div>
+              <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginTop: 2 }}>{label}</div>
+            </div>
+          ))}
+
+          {/* Main content */}
+          <div className="ls-right" style={{ position: "relative", zIndex: 1, padding: "72px 64px", maxWidth: 580 }}>
+
+            <p style={{ fontSize: 10, letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(255,255,255,0.18)", marginBottom: 28, fontWeight: 400 }}>
+              Built for students who mean it
             </p>
-          )}
+
+            <h2 style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "clamp(2.8rem, 4vw, 3.8rem)",
+              fontWeight: 900, color: "#fff",
+              lineHeight: 1.08, letterSpacing: "-0.03em",
+              marginBottom: 36,
+            }}>
+              Study smarter.<br />
+              Score higher.<br />
+              <span style={{ fontStyle: "italic", color: "rgba(255,255,255,0.45)" }}>Feel the difference.</span>
+            </h2>
+
+            {/* Typewriter block */}
+            <div style={{
+              borderLeft: "2px solid rgba(255,255,255,0.12)",
+              paddingLeft: 22, marginBottom: 48, minHeight: 90,
+            }}>
+              <p style={{ fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: 10 }}>
+                Students are saying —
+              </p>
+              <p style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: "1.3rem", fontWeight: 700,
+                color: "rgba(255,255,255,0.82)", lineHeight: 1.4, minHeight: 52,
+              }}>
+                {typed}
+                <span className="ls-cursor" />
+              </p>
+            </div>
+
+            {/* Feature pills */}
+            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+              {["AI-powered explanations", "Smart flashcards", "Exam simulations", "Progress tracking"].map((f) => (
+                <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "rgba(255,255,255,0.3)", letterSpacing: "0.04em" }}>
+                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(255,255,255,0.2)", flexShrink: 0 }} />
+                  {f}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
