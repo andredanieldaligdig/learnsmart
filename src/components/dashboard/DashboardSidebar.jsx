@@ -87,7 +87,6 @@ export default function DashboardSidebar({
         {recentChats.length ? (
           <>
             <div className="text-xs uppercase tracking-[0.24em] text-neutral-500">Recent Chats</div>
-
             <div className="mt-3 space-y-1">
               {recentChats.slice(0, 8).map((chat) => (
                 <button
@@ -110,7 +109,7 @@ export default function DashboardSidebar({
         ) : null}
       </div>
 
-      <div className="mt-4 bg-white/[0.04] p-3 rounded-xl">
+      <div className="mt-4 rounded-xl bg-white/[0.04] p-3">
         <div className="flex items-center gap-3">
           <ProfileAvatar
             displayName={profile.displayName}
@@ -119,11 +118,10 @@ export default function DashboardSidebar({
             size="sm"
           />
           <div className="min-w-0">
-            <div className="truncate text-sm text-white">{profile.displayName || "<USER_NAME>"}</div>
-            <div className="truncate text-xs text-neutral-500">{user?.email || "<USER_EMAIL>"}</div>
+            <div className="truncate text-sm text-white">{profile.displayName || "User"}</div>
+            <div className="truncate text-xs text-neutral-500">{user?.email || ""}</div>
           </div>
         </div>
-
         <button
           type="button"
           onClick={onLogout}

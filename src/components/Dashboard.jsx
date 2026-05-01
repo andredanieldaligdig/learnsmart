@@ -17,7 +17,6 @@ function createId(prefix) {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return `${prefix}-${crypto.randomUUID()}`;
   }
-
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
@@ -26,7 +25,6 @@ function getDisplayName(user) {
     user?.user_metadata?.username ||
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name;
-
   if (metadataName) return metadataName;
   if (user?.email) return user.email.split("@")[0];
   return "<USER_NAME>";
@@ -46,6 +44,7 @@ function createAssistantPlaceholder() {
     id: createId("assistant"),
     role: "assistant",
     content: "ai is thinking...",
+    streaming: false,
   };
 }
 
@@ -60,7 +59,6 @@ function createEmptyChatSession() {
 
 function createDiscussionPost({ authorBio, authorImageAlt, authorImageSrc, authorName, authorUserId, content }) {
   const trimmedContent = content.trim();
-
   return {
     id: createId("post"),
     authorBio: authorBio?.trim() || "",
@@ -113,7 +111,6 @@ export default function Dashboard({ user, onLogout, initialView }) {
       typeof window !== "undefined"
         ? window.localStorage.getItem(DASHBOARD_VIEW_STORAGE_KEY)
         : null;
-
     return normalizeInitialView(initialView || storedView);
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -133,7 +130,6 @@ export default function Dashboard({ user, onLogout, initialView }) {
       typeof window !== "undefined"
         ? window.localStorage.getItem(MY_SPACE_TAB_STORAGE_KEY)
         : null;
-
     return MY_SPACE_TABS.some((tab) => tab.id === storedTab) ? storedTab : MY_SPACE_TABS[0].id;
   });
   const [profile, setProfile] = useState(() => ({
@@ -162,17 +158,16 @@ export default function Dashboard({ user, onLogout, initialView }) {
     const timeoutId = window.setTimeout(() => {
       setIsNotificationsLoading(false);
     }, 450);
-
     return () => window.clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
     if (!highlightedPostId) return;
-
     const timeoutId = window.setTimeout(() => {
-      setHighlightedPostId((currentPostId) => (currentPostId === highlightedPostId ? null : currentPostId));
+      setHighlightedPostId((currentPostId) =>
+        currentPostId === highlightedPostId ? null : currentPostId
+      );
     }, 2200);
-
     return () => window.clearTimeout(timeoutId);
   }, [highlightedPostId]);
 
@@ -181,52 +176,35 @@ export default function Dashboard({ user, onLogout, initialView }) {
 
     async function syncDisplayName() {
       const metadataName = getMetadataName(user);
-
       if (metadataName) {
         if (cancelled) return;
-        setProfile((currentProfile) => ({
-          ...currentProfile,
-          displayName: metadataName,
-        }));
+        setProfile((currentProfile) => ({ ...currentProfile, displayName: metadataName }));
         return;
       }
-
       if (!user?.id) {
         if (cancelled) return;
-        setProfile((currentProfile) => ({
-          ...currentProfile,
-          displayName: getDisplayName(user),
-        }));
+        setProfile((currentProfile) => ({ ...currentProfile, displayName: getDisplayName(user) }));
         return;
       }
-
       try {
         const accountProfile = await getAccountProfile(user.id);
         if (cancelled) return;
-
         setProfile((currentProfile) => ({
           ...currentProfile,
           displayName: accountProfile?.username || getDisplayName(user),
         }));
       } catch {
         if (cancelled) return;
-        setProfile((currentProfile) => ({
-          ...currentProfile,
-          displayName: getDisplayName(user),
-        }));
+        setProfile((currentProfile) => ({ ...currentProfile, displayName: getDisplayName(user) }));
       }
     }
 
     syncDisplayName();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user]);
 
   useEffect(() => {
     if (!user?.id) return;
-
     setDiscussionPosts((currentPosts) =>
       currentPosts.map((post) =>
         post.authorUserId === user.id
@@ -237,8 +215,8 @@ export default function Dashboard({ user, onLogout, initialView }) {
               authorImageSrc: profile.imageSrc,
               authorName: profile.displayName?.trim() || getDisplayName(user),
             }
-          : post,
-      ),
+          : post
+      )
     );
   }, [profile.bio, profile.displayName, profile.imageAlt, profile.imageSrc, user]);
 
@@ -248,7 +226,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
   const displayName = profile.displayName?.trim() || "<USER_NAME>";
   const isChatView = activeView === DASHBOARD_VIEWS.NEW_CHAT;
   const isEmptyDraftChat = isChatView && (!activeChat || activeChat.messages.length === 0);
-  const unreadNotificationCount = notifications.filter((notification) => notification.unread).length;
+  const unreadNotificationCount = notifications.filter((n) => n.unread).length;
 
   function closeSidebar() {
     if (isLoggingOut) return;
@@ -259,10 +237,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
     if (isLoggingOut) return;
     setIsNotificationTrayOpen(true);
     setNotifications((currentNotifications) =>
-      currentNotifications.map((notification) => ({
-        ...notification,
-        unread: false,
-      })),
+      currentNotifications.map((n) => ({ ...n, unread: false }))
     );
   }
 
@@ -275,18 +250,11 @@ export default function Dashboard({ user, onLogout, initialView }) {
     if (isLoggingOut) return;
     setIsNotificationTrayOpen(false);
     setNotifications((currentNotifications) =>
-      currentNotifications.map((currentNotification) =>
-        currentNotification.id === notification.id
-          ? {
-              ...currentNotification,
-              unread: false,
-            }
-          : currentNotification,
-      ),
+      currentNotifications.map((n) =>
+        n.id === notification.id ? { ...n, unread: false } : n
+      )
     );
-
     if (!notification.postId) return;
-
     setActiveView(DASHBOARD_VIEWS.DISCUSSIONS);
     setHighlightedPostId(notification.postId);
   }
@@ -301,16 +269,13 @@ export default function Dashboard({ user, onLogout, initialView }) {
   function handleNewChat() {
     if (isLoggingOut) return;
     setHighlightedPostId(null);
-
     if (activeChat && activeChat.messages.length === 0) {
       setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
       setChatInput("");
       closeSidebar();
       return;
     }
-
     const nextChat = createEmptyChatSession();
-
     setActiveChatId(nextChat.id);
     setChatSessions((currentSessions) => [nextChat, ...currentSessions]);
     setChatInput("");
@@ -321,7 +286,6 @@ export default function Dashboard({ user, onLogout, initialView }) {
   function handleChatSubmit() {
     if (isLoggingOut) return;
     const trimmedInput = chatInput.trim();
-
     if (!trimmedInput) return;
 
     const targetId = activeChatId || createId("chat");
@@ -333,7 +297,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
 
     setActiveChatId(targetId);
     setChatSessions((currentSessions) => {
-      const existingSession = currentSessions.find((session) => session.id === targetId);
+      const existingSession = currentSessions.find((s) => s.id === targetId);
       const nextMessages = existingSession
         ? [...existingSession.messages, userMessage, createAssistantPlaceholder()]
         : [userMessage, createAssistantPlaceholder()];
@@ -346,12 +310,32 @@ export default function Dashboard({ user, onLogout, initialView }) {
         updatedAt: Date.now(),
         messages: nextMessages,
       };
-      const remainingSessions = currentSessions.filter((session) => session.id !== targetId);
-
+      const remainingSessions = currentSessions.filter((s) => s.id !== targetId);
       return [nextSession, ...remainingSessions];
     });
 
     setChatInput("");
+  }
+
+  // Called by ChatModule as tokens stream in
+  function handleStreamingUpdate(messageId, content, streaming) {
+    setChatSessions((currentSessions) =>
+      currentSessions.map((session) => {
+        if (!session.messages.some((m) => m.id === messageId)) return session;
+        return {
+          ...session,
+          messages: session.messages.map((m) => {
+            if (m.id !== messageId) return m;
+            // null content means the stream was aborted — keep whatever was accumulated
+            return {
+              ...m,
+              content: content !== null ? content : m.content,
+              streaming,
+            };
+          }),
+        };
+      })
+    );
   }
 
   function handleRecentChatSelect(chatId) {
@@ -365,7 +349,6 @@ export default function Dashboard({ user, onLogout, initialView }) {
   async function handleCreatePost(content) {
     if (isLoggingOut) return null;
     await waitForUiFeedback();
-
     const nextPost = createDiscussionPost({
       authorBio: profile.bio,
       authorImageAlt: profile.imageAlt,
@@ -374,7 +357,6 @@ export default function Dashboard({ user, onLogout, initialView }) {
       authorUserId: user?.id,
       content,
     });
-
     setDiscussionPosts((currentPosts) => [nextPost, ...currentPosts]);
     return nextPost;
   }
@@ -382,17 +364,11 @@ export default function Dashboard({ user, onLogout, initialView }) {
   function handleLikePost(postId) {
     if (isLoggingOut) return;
     if (likedPostIds.includes(postId)) return;
-
-    setLikedPostIds((currentLikedPostIds) => [...currentLikedPostIds, postId]);
+    setLikedPostIds((ids) => [...ids, postId]);
     setDiscussionPosts((currentPosts) =>
       currentPosts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              likes: post.likes + 1,
-            }
-          : post,
-      ),
+        post.id === postId ? { ...post, likes: post.likes + 1 } : post
+      )
     );
     setNotifications((currentNotifications) => [
       createNotification({
@@ -407,44 +383,28 @@ export default function Dashboard({ user, onLogout, initialView }) {
   async function handleSavePost(postId) {
     if (isLoggingOut) return false;
     if (savedPostIds.includes(postId)) return false;
-
     await waitForUiFeedback();
-    setSavedPostIds((currentSavedPostIds) => [...currentSavedPostIds, postId]);
+    setSavedPostIds((ids) => [...ids, postId]);
     setDiscussionPosts((currentPosts) =>
       currentPosts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              saves: post.saves + 1,
-            }
-          : post,
-      ),
+        post.id === postId ? { ...post, saves: post.saves + 1 } : post
+      )
     );
-
     return true;
   }
 
   async function handleCommentPost(postId, content) {
     if (isLoggingOut) return false;
     const trimmedContent = content.trim();
-
     if (!trimmedContent) return false;
-
     await waitForUiFeedback();
-    const nextComment = createComment({
-      authorName: displayName,
-      content: trimmedContent,
-    });
-
+    const nextComment = createComment({ authorName: displayName, content: trimmedContent });
     setDiscussionPosts((currentPosts) =>
       currentPosts.map((post) =>
         post.id === postId
-          ? {
-              ...post,
-              comments: [...post.comments, nextComment],
-            }
-          : post,
-      ),
+          ? { ...post, comments: [...post.comments, nextComment] }
+          : post
+      )
     );
     setNotifications((currentNotifications) => [
       createNotification({
@@ -454,18 +414,15 @@ export default function Dashboard({ user, onLogout, initialView }) {
       }),
       ...currentNotifications,
     ]);
-
     return true;
   }
 
   async function handleProfileSave(nextProfile) {
     if (isLoggingOut) return;
     const trimmedDisplayName = nextProfile.displayName?.trim();
-
     if (user?.id && trimmedDisplayName) {
       await updateAccountProfile(user.id, { displayName: trimmedDisplayName });
     }
-
     await waitForUiFeedback();
     setProfile((currentProfile) => ({
       ...currentProfile,
@@ -479,7 +436,6 @@ export default function Dashboard({ user, onLogout, initialView }) {
 
   async function handleLogoutRequest() {
     if (isLoggingOut) return;
-
     setIsLoggingOut(true);
     closeSidebar();
     closeNotifications();
@@ -496,6 +452,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
           messages={currentMessages}
           onChatInputChange={setChatInput}
           onSubmit={handleChatSubmit}
+          onStreamingUpdate={handleStreamingUpdate}
         />
       );
     }
@@ -617,7 +574,6 @@ export default function Dashboard({ user, onLogout, initialView }) {
             <div className="absolute -bottom-40 -left-32 h-96 w-96 rounded-full bg-white/6 blur-3xl" />
             <div className="absolute inset-0 bg-dot-grid opacity-15 animate-grid" />
           </div>
-
           <div className="relative flex flex-col items-center gap-4 px-6 text-center">
             <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/15 border-t-white" />
             <div className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Logging out</div>

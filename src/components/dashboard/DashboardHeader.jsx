@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FiBell, FiEdit2 } from "react-icons/fi";
+import { supabase, uploadAvatar } from "../../../supabase.js";
 
 function ProfileSettingsPopover({ profile, onSaveProfile }) {
   const popoverRef = useRef(null);
@@ -31,10 +32,8 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
 
   async function handleSave() {
     if (saveState === "saving") return;
-
     setErrorMessage("");
     setSaveState("saving");
-
     try {
       await onSaveProfile(draftProfile);
       setSaveState("saved");
@@ -54,24 +53,32 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
     }));
   }
 
-  function handleImageUpload(event) {
+  async function handleImageUpload(event) {
     const file = event.target.files?.[0];
-
     if (!file) return;
 
-    const reader = new FileReader();
+    const localPreview = URL.createObjectURL(file);
+    setDraftProfile((current) => ({
+      ...current,
+      imageSrc: localPreview,
+      imageAlt: file.name,
+    }));
 
-    reader.onload = () => {
-      const imageResult = typeof reader.result === "string" ? reader.result : "";
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error("Not logged in");
 
-      setDraftProfile((currentProfile) => ({
-        ...currentProfile,
-        imageSrc: imageResult,
-        imageAlt: file.name || currentProfile.imageAlt,
+      const publicUrl = await uploadAvatar(user.id, file);
+
+      setDraftProfile((current) => ({
+        ...current,
+        imageSrc: publicUrl,
+        imageAlt: file.name,
       }));
-    };
-
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      setErrorMessage("Image upload failed. Try again.");
+    }
   }
 
   const saveLabel =
@@ -203,7 +210,8 @@ export default function DashboardHeader({
 }) {
   return (
     <header className="sticky top-0 z-20 bg-neutral-950/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-end px-16 py-3 sm:px-20">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+        <div className="text-xs uppercase tracking-[0.28em] text-neutral-500">LearnSmart</div>
         <div className="flex items-center gap-3">
           {activeView === "my_space" ? (
             <ProfileSettingsPopover profile={profile} onSaveProfile={onSaveProfile} />
