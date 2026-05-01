@@ -12,16 +12,19 @@ export default function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const hash = new URLSearchParams(window.location.hash.replace("#", ""));
-    const accessToken = hash.get("access_token");
-    const refreshToken = hash.get("refresh_token");
+  const handleRecovery = async () => {
+    const { data, error } = await supabase.auth.getSession();
 
-    if (!accessToken || !refreshToken) {
+    if (error || !data.session) {
       setError("Invalid or expired reset link.");
-    } else {
-      setToken({ access_token: accessToken, refresh_token: refreshToken });
+      return;
     }
-  }, []);
+
+    setToken(data.session);
+  };
+
+  handleRecovery();
+}, []);
 
   const handleReset = async () => {
     setError("");
@@ -42,13 +45,10 @@ export default function ResetPassword() {
     try {
       if (!token) throw new Error("Missing session token.");
 
-      await supabase.auth.setSession({
-        access_token: token.access_token,
-        refresh_token: token.refresh_token,
-      });
 
-      const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) throw updateError;
+      const { error: updateError } = await supabase.auth.updateUser({
+    password,
+  });
 
       setMessage("Password updated! You can now log in.");
       setTimeout(() => navigate("/login"), 2000);
