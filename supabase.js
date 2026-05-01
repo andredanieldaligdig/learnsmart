@@ -47,6 +47,11 @@ export async function createAccount(email, password, displayName, gender, dob) {
 }
 
 export async function uploadAvatar(userId, file) {
+  // Ensure account exists before uploading avatar
+  if (userId) {
+    await ensureAccountExists(userId, "User");
+  }
+
   const fileExt = file.name.split(".").pop();
   const filePath = `${userId}/avatar.${fileExt}`;
 
@@ -91,6 +96,9 @@ export async function updateAccountProfile(userId, { displayName, bio, avatarUrl
   const trimmedDisplayName = displayName?.trim();
 
   if (!userId) throw new Error("A valid user id is required.");
+
+  // Ensure account exists before updating profile
+  await ensureAccountExists(userId, trimmedDisplayName || "User");
 
   // Update auth metadata if display name changed
   if (trimmedDisplayName) {
@@ -160,10 +168,17 @@ async function ensureAccountExists(userId, displayName) {
       .maybeSingle();
     
     if (!existing) {
+      // Get user email from auth
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
       // Account doesn't exist, create it
       const { error: createError } = await supabase
         .from("accounts")
-        .insert([{ id: userId, username: displayName || "Anonymous" }]);
+        .insert([{ 
+          id: userId, 
+          username: displayName || "Anonymous",
+          email: authUser?.email || "" // Include email - required field
+        }]);
       
       if (createError && createError.code !== '23505') { // 23505 = unique violation (already exists)
         console.error("Failed to ensure account exists:", createError);
