@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { FiArrowUp, FiSquare } from "react-icons/fi";
 
+const AI_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+const AI_SYSTEM_PROMPT =
+  "You are LearnSmart's AI study assistant. You help students understand difficult concepts, prepare for exams, explain topics clearly, and provide study strategies. Be concise but thorough, use examples where helpful, and keep an encouraging, supportive tone.";
+
 function MessageBubble({ message }) {
   const role = typeof message.role === "string" ? message.role.toLowerCase() : "";
   const isUser = role === "user" || role === "human";
@@ -98,56 +102,28 @@ export default function ChatModule({
     abortControllerRef.current = new AbortController();
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch(`${AI_API_BASE_URL}/api/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         signal: abortControllerRef.current.signal,
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system:
-            "You are LearnSmart's AI study assistant. You help students understand difficult concepts, prepare for exams, explain topics clearly, and provide study strategies. Be concise but thorough, use examples where helpful, and keep an encouraging, supportive tone.",
-          stream: true,
           messages: history,
+          systemPrompt: AI_SYSTEM_PROMPT,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const errorPayload = await response.json().catch(() => null);
+        throw new Error(errorPayload?.error || `API error: ${response.status}`);
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice(6).trim();
-          if (data === "[DONE]") continue;
-
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
-              accumulated += parsed.delta.text;
-              onStreamingUpdate?.(placeholderMsg.id, accumulated, true);
-            }
-          } catch {
-            // skip malformed SSE lines
-          }
-        }
-      }
+      const payload = await response.json();
+      const accumulated = payload?.content?.trim() || "Sorry, I couldn't generate a response.";
 
       // Finalize: mark streaming done
-      onStreamingUpdate?.(placeholderMsg.id, accumulated || "Sorry, I couldn't generate a response.", false);
+      onStreamingUpdate?.(placeholderMsg.id, accumulated, false);
     } catch (err) {
       if (err.name === "AbortError") {
         // User cancelled — keep whatever text was accumulated

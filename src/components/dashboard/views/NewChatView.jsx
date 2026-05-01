@@ -6,6 +6,7 @@ export default function NewChatView({
   messages,
   onChatInputChange,
   onSubmit,
+  onStreamingUpdate,
 }) {
   return (
     <section>
@@ -15,6 +16,7 @@ export default function NewChatView({
         messages={messages}
         onChatInputChange={onChatInputChange}
         onSubmit={onSubmit}
+        onStreamingUpdate={onStreamingUpdate}
       />
     </section>
   );

@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://obxthuoqtaoimpidximk.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ieHRodW9xdGFvaW1waWR4aW1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MDg1NjcsImV4cCI6MjA4NjQ4NDU2N30.9T5xvSVwptKWxKzx-a1ozBK3uH04oOUd1G4Ibe-wvZE';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Missing Supabase environment variables.");
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -89,6 +93,20 @@ export async function getAccountProfile(userId) {
 
   if (error) throw error;
   return data;
+}
+
+export async function getAccountProfilesByIds(userIds) {
+  const uniqueIds = [...new Set((userIds || []).filter(Boolean))];
+
+  if (!uniqueIds.length) return [];
+
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("id, username, avatar_url, bio")
+    .in("id", uniqueIds);
+
+  if (error) throw error;
+  return data || [];
 }
 
 // ✅ Now saves bio and avatar_url too
@@ -444,4 +462,13 @@ export async function getChatSessions(userId) {
     .order('updated_at', { ascending: false });
   if (error) return [];
   return data;
+}
+
+export async function deleteChatSession(userId, sessionId) {
+  const { error } = await supabase
+    .from("chat_sessions")
+    .delete()
+    .match({ user_id: userId, id: sessionId });
+
+  if (error) throw error;
 }

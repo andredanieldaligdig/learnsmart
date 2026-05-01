@@ -1,6 +1,21 @@
 import { useEffect, useState } from "react";
 import { FiMenu } from "react-icons/fi";
-import { addPost, getPosts, getLikedPostIdsByUser, getSavedPostIdsByUser, likePost, unlikePost, savePostForUser, removeSavedPostForUser, updatePost as supabaseUpdatePost, getAccountProfile, updateAccountProfile, saveChatSession, getChatSessions } from "../../supabase.js";
+import {
+  addPost,
+  deleteChatSession,
+  deletePost,
+  getAccountProfile,
+  getAccountProfilesByIds,
+  getChatSessions,
+  getLikedPostIdsByUser,
+  getPosts,
+  getSavedPostIdsByUser,
+  likePost,
+  saveChatSession,
+  savePostForUser,
+  updateAccountProfile,
+  updatePost as supabaseUpdatePost,
+} from "../../supabase.js";
 import DashboardHeader from "./dashboard/DashboardHeader.jsx";
 import NotificationTray from "./dashboard/NotificationTray.jsx";
 import DashboardSidebar from "./dashboard/DashboardSidebar.jsx";
@@ -74,10 +89,42 @@ function createDiscussionPost({ authorBio, authorImageAlt, authorImageSrc, autho
   };
 }
 
-function createComment({ authorName, content }) {
+function normalizeTimestamp(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  if (typeof value === "string") {
+    const parsedValue = new Date(value).getTime();
+    if (Number.isFinite(parsedValue)) return parsedValue;
+  }
+
+  return Date.now();
+}
+
+function normalizeStoredComment(comment) {
+  if (typeof comment === "string") {
+    return {
+      id: createId("comment"),
+      authorName: "Anonymous",
+      authorUserId: null,
+      content: comment,
+      createdAt: Date.now(),
+    };
+  }
+
+  return {
+    id: comment?.id || createId("comment"),
+    authorName: comment?.user || comment?.authorName || "Anonymous",
+    authorUserId: comment?.user_id || comment?.authorUserId || null,
+    content: comment?.text || comment?.content || "",
+    createdAt: normalizeTimestamp(comment?.createdAt || comment?.created_at),
+  };
+}
+
+function createComment({ authorName, authorUserId, content }) {
   return {
     id: createId("comment"),
     authorName,
+    authorUserId: authorUserId || null,
     content: content.trim(),
     createdAt: Date.now(),
   };
@@ -150,22 +197,24 @@ useEffect(() => {
         getSavedPostIdsByUser(user.id),
       ]);
       if (cancelled) return;
+      const authorProfiles = await getAccountProfilesByIds(
+        rawPosts.map((post) => post.user_id).filter(Boolean)
+      );
+      if (cancelled) return;
+      const authorProfilesById = new Map(authorProfiles.map((profile) => [profile.id, profile]));
       const normalized = rawPosts.map((r) => ({
+        ...(authorProfilesById.get(r.user_id || "") || {}),
         id: r.id,
-        authorName: r.author || "Anonymous",
+        authorName: authorProfilesById.get(r.user_id || "")?.username || r.author || "Anonymous",
         authorUserId: r.user_id || null,
-        authorBio: "",
-        authorImageAlt: "",
-        authorImageSrc: "",
+        authorBio: authorProfilesById.get(r.user_id || "")?.bio || "",
+        authorImageAlt: authorProfilesById.get(r.user_id || "")?.avatar_url ? "Profile image" : "",
+        authorImageSrc: authorProfilesById.get(r.user_id || "")?.avatar_url || "",
         content: r.content || "",
         createdAt: new Date(r.created_at).getTime(),
         likes: r.likes || 0,
         saves: r.saves || 0,
-        comments: (r.comments || []).map((c) =>
-          typeof c === "string"
-            ? { id: c, authorName: "Anonymous", content: c, createdAt: Date.now() }
-            : { id: c.id || Math.random(), authorName: c.user || "Anonymous", content: c.text || c.content || "", createdAt: Date.now() }
-        ),
+        comments: (r.comments || []).map(normalizeStoredComment),
       }));
       setDiscussionPosts(normalized);
       setLikedPostIds(likedIds);
@@ -356,6 +405,16 @@ useEffect(() => {
     closeSidebar();
   }
 
+  async function persistChatSession(session) {
+    if (!user?.id) return;
+
+    try {
+      await saveChatSession(user.id, session);
+    } catch (err) {
+      console.error("Save chat error:", err);
+    }
+  }
+
   function handleChatSubmit() {
     if (isLoggingOut) return;
     const trimmedInput = chatInput.trim();
@@ -370,6 +429,7 @@ useEffect(() => {
     };
 
     setActiveChatId(targetId);
+    let nextSessionToPersist = null;
     setChatSessions((currentSessions) => {
       const existingSession = currentSessions.find((s) => s.id === targetId);
       const nextMessages = existingSession
@@ -384,28 +444,25 @@ useEffect(() => {
         updatedAt: Date.now(),
         messages: nextMessages,
       };
+      nextSessionToPersist = nextSession;
       const remainingSessions = currentSessions.filter((s) => s.id !== targetId);
       return [nextSession, ...remainingSessions];
     });
 
     setChatInput("");
-// Save to Supabase after state updates
-window.setTimeout(async () => {
-  const session = chatSessions.find((s) => s.id === targetId) || {
-    id: targetId,
-    title: trimmedInput,
-    messages: [userMessage],
-  };
-  await saveChatSession(user.id, session);
-}, 100);
+
+    if (nextSessionToPersist) {
+      persistChatSession(nextSessionToPersist);
+    }
 }
 
   // Called by ChatModule as tokens stream in
   function handleStreamingUpdate(messageId, content, streaming) {
+    let nextSessionToPersist = null;
     setChatSessions((currentSessions) =>
       currentSessions.map((session) => {
         if (!session.messages.some((m) => m.id === messageId)) return session;
-        return {
+        const nextSession = {
           ...session,
           messages: session.messages.map((m) => {
             if (m.id !== messageId) return m;
@@ -417,8 +474,14 @@ window.setTimeout(async () => {
             };
           }),
         };
+        nextSessionToPersist = nextSession;
+        return nextSession;
       })
     );
+
+    if (!streaming && nextSessionToPersist) {
+      persistChatSession(nextSessionToPersist);
+    }
   }
 
   function handleRecentChatSelect(chatId) {
@@ -427,6 +490,27 @@ window.setTimeout(async () => {
     setActiveChatId(chatId);
     setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
     closeSidebar();
+  }
+
+  async function handleDeleteChat(chatId) {
+    if (isLoggingOut) return;
+
+    const nextActiveChatId = activeChatId === chatId ? null : activeChatId;
+    setChatSessions((currentSessions) => currentSessions.filter((session) => session.id !== chatId));
+    setActiveChatId(nextActiveChatId);
+
+    if (activeChatId === chatId) {
+      setChatInput("");
+      setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
+    }
+
+    if (!user?.id) return;
+
+    try {
+      await deleteChatSession(user.id, chatId);
+    } catch (err) {
+      console.error("Delete chat failed:", err);
+    }
   }
 
   async function handleCreatePost(content) {
@@ -494,12 +578,22 @@ window.setTimeout(async () => {
     const trimmedContent = content.trim();
     if (!trimmedContent) return false;
     await waitForUiFeedback();
-    const nextComment = createComment({ authorName: displayName, content: trimmedContent });
+    const nextComment = createComment({
+      authorName: displayName,
+      authorUserId: user?.id,
+      content: trimmedContent,
+    });
 try {
   const post = discussionPosts.find((p) => p.id === postId);
   const updatedComments = [
     ...(post?.comments || []),
-    { id: nextComment.id, text: trimmedContent, user: displayName },
+    {
+      id: nextComment.id,
+      text: trimmedContent,
+      user: displayName,
+      user_id: user?.id || null,
+      createdAt: nextComment.createdAt,
+    },
   ];
   await supabaseUpdatePost(postId, { comments: updatedComments });
   // Only update local state after Supabase confirms
@@ -512,16 +606,51 @@ try {
   );
 } catch (err) {
   console.error("Comment save failed:", err);
+  return false;
 }
-    setNotifications((currentNotifications) => [
-      createNotification({
-        title: "New comment on your post",
-        detail: `${displayName} replied: ${trimmedContent}`,
-        postId,
-      }),
-      ...currentNotifications,
-    ]);
+
     return true;
+  }
+
+  async function handleUpdatePost(postId, content) {
+    if (isLoggingOut) return false;
+
+    const trimmedContent = content.trim();
+    if (!trimmedContent) return false;
+
+    try {
+      await supabaseUpdatePost(postId, { content: trimmedContent });
+      setDiscussionPosts((currentPosts) =>
+        currentPosts.map((post) =>
+          post.id === postId ? { ...post, content: trimmedContent } : post
+        )
+      );
+      return true;
+    } catch (err) {
+      console.error("Update post failed:", err);
+      return false;
+    }
+  }
+
+  async function handleDeletePost(postId) {
+    if (isLoggingOut) return false;
+
+    try {
+      await deletePost(postId);
+      setDiscussionPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId));
+      setLikedPostIds((currentIds) => currentIds.filter((id) => id !== postId));
+      setSavedPostIds((currentIds) => currentIds.filter((id) => id !== postId));
+      setNotifications((currentNotifications) =>
+        currentNotifications.filter((notification) => notification.postId !== postId)
+      );
+      if (highlightedPostId === postId) {
+        setHighlightedPostId(null);
+      }
+      return true;
+    } catch (err) {
+      console.error("Delete post failed:", err);
+      return false;
+    }
   }
 
   
@@ -578,13 +707,16 @@ async function handleLogoutRequest() {
     if (activeView === DASHBOARD_VIEWS.DISCUSSIONS) {
       return (
         <DiscussionsView
+          currentUserId={user?.id || null}
           focusedPostId={highlightedPostId}
           likedPostIds={likedPostIds}
           posts={discussionPosts}
           savedPostIds={savedPostIds}
           onCommentPost={handleCommentPost}
+          onDeletePost={handleDeletePost}
           onLikePost={handleLikePost}
           onSavePost={handleSavePost}
+          onUpdatePost={handleUpdatePost}
         />
       );
     }
@@ -636,6 +768,7 @@ return (
         onClose={closeSidebar}
         onLogout={handleLogoutRequest}
         onNewChat={handleNewChat}
+        onDeleteChat={handleDeleteChat}
         onSelectChat={handleRecentChatSelect}
         onSelectView={openView}
       />
@@ -678,7 +811,7 @@ return (
                 ? "w-full"
                 : activeView === DASHBOARD_VIEWS.MY_SPACE
                   ? "mx-auto w-full max-w-6xl"
-                  : "mx-auto w-full max-w-5xl",
+                  : "mx-auto w-full max-w-6xl",
             ].join(" ")}
           >
             {renderView()}

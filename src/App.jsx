@@ -118,7 +118,7 @@ function DashboardPageSkeleton({ view }) {
           <div
             className={[
               "mx-auto w-full",
-              isMySpace ? "max-w-6xl" : isDiscussion ? "max-w-5xl" : "max-w-6xl",
+              isMySpace ? "max-w-6xl" : isDiscussion ? "max-w-6xl" : "max-w-6xl",
             ].join(" ")}
           >
             {isMySpace ? (
@@ -134,9 +134,12 @@ function DashboardPageSkeleton({ view }) {
                 </div>
               </div>
             ) : isDiscussion ? (
-              <div className="space-y-4">
-                <SkeletonBlock className="h-72 w-full rounded-[28px]" />
-                <SkeletonBlock className="h-72 w-full rounded-[28px]" />
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr),300px]">
+                <div className="space-y-4">
+                  <SkeletonBlock className="h-72 w-full rounded-[28px]" />
+                  <SkeletonBlock className="h-72 w-full rounded-[28px]" />
+                </div>
+                <SkeletonBlock className="h-80 w-full rounded-[28px]" />
               </div>
             ) : (
               <div className="space-y-4">
