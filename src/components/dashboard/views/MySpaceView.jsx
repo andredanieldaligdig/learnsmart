@@ -63,6 +63,7 @@ export default function MySpaceView({
   displayName,
   likedPostIds,
   posts,
+  allPosts,
   profile,
   savedPostIds,
   userEmail,
@@ -71,9 +72,9 @@ export default function MySpaceView({
 }) {
   const [postDraft, setPostDraft] = useState("");
   const [postStatus, setPostStatus] = useState("idle");
-
-  const likedPosts = posts.filter((post) => likedPostIds.includes(post.id));
-  const savedPosts = posts.filter((post) => savedPostIds.includes(post.id));
+  const sourcePosts = allPosts || posts;
+  const likedPosts = sourcePosts.filter((post) => likedPostIds.includes(post.id));
+  const savedPosts = sourcePosts.filter((post) => savedPostIds.includes(post.id));
 
   async function handlePostSubmit() {
     const trimmedDraft = postDraft.trim();

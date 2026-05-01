@@ -589,6 +589,7 @@ return (
     displayName={displayName}
     likedPostIds={likedPostIds}
     posts={myPosts}
+    allPosts={discussionPosts}
     profile={profile}
     savedPostIds={savedPostIds}
     userEmail={user?.email || "<USER_EMAIL>"}
