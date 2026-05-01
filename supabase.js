@@ -49,7 +49,10 @@ export async function createAccount(email, password, displayName, gender, dob) {
   if (profileError) throw profileError;
 }
 
-  return user;
+  return {
+    user,
+    session: data.session || null,
+  };
 }
 
 export async function uploadAvatar(userId, file) {

@@ -51,9 +51,11 @@ export default function Signup() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [dob, setDob] = useState("");
   const [gender, setGender] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const typed = useTypewriter(PHRASES);
 
@@ -64,11 +66,32 @@ export default function Signup() {
     }
 
     setError("");
+    setMessage("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await createAccount(email, password, displayName.trim(), gender, dob);
-      navigate("/login");
+      const result = await createAccount(email, password, displayName.trim(), gender, dob);
+
+      setMessage(
+        result.session
+          ? "Account created successfully. Redirecting to sign in..."
+          : "Account created. Check your email to confirm your account, then sign in."
+      );
+      setDisplayName("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setDob("");
+      setGender("");
+      window.setTimeout(() => {
+        navigate("/login");
+      }, 2200);
     } catch (err) {
       console.error(err);
       setError(err.message || "Sign up failed");
@@ -272,6 +295,20 @@ export default function Signup() {
                 position: "absolute", left: 16, top: 10,
                 fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase",
                 color: "rgba(255,255,255,0.25)", pointerEvents: "none",
+              }}>Confirm Password</label>
+              <input
+                className="ls-input"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+
+            <div style={{ position: "relative" }}>
+              <label style={{
+                position: "absolute", left: 16, top: 10,
+                fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase",
+                color: "rgba(255,255,255,0.25)", pointerEvents: "none",
               }}>Date of Birth</label>
               <input
                 className="ls-date"
@@ -305,6 +342,12 @@ export default function Signup() {
                 background: "rgba(255,80,80,0.07)", border: "1px solid rgba(255,80,80,0.12)",
                 borderRadius: 12, padding: "10px 14px", fontSize: 12, color: "rgba(255,120,120,0.9)",
               }}>{error}</p>
+            )}
+            {message && (
+              <p style={{
+                background: "rgba(80,220,140,0.07)", border: "1px solid rgba(80,220,140,0.12)",
+                borderRadius: 12, padding: "10px 14px", fontSize: 12, color: "rgba(100,230,160,0.9)",
+              }}>{message}</p>
             )}
 
             <button

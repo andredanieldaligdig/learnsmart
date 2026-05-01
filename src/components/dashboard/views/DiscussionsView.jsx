@@ -183,6 +183,21 @@ const DiscussionCard = memo(function DiscussionCard({
     };
   }, [isActionsMenuOpen]);
 
+  useEffect(() => {
+    if (!isDeleteConfirming) return;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape" && pendingAction !== "delete") {
+        setIsDeleteConfirming(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isDeleteConfirming, pendingAction]);
+
   function flashAction(action) {
     setSuccessfulAction(action);
     window.setTimeout(() => {
@@ -431,32 +446,6 @@ const DiscussionCard = memo(function DiscussionCard({
           </div>
         </div>
 
-        {isDeleteConfirming ? (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-rose-300/15 bg-rose-400/10 px-4 py-3">
-            <div className="text-sm text-rose-100">Delete this post permanently?</div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                disabled={pendingAction === "delete"}
-                onClick={() => setIsDeleteConfirming(false)}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-neutral-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <FiX />
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={pendingAction === "delete"}
-                onClick={handleDelete}
-                className="inline-flex items-center gap-2 rounded-full bg-rose-200 px-4 py-2 text-sm font-medium text-rose-950 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <FiTrash2 />
-                {pendingAction === "delete" ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -582,6 +571,45 @@ const DiscussionCard = memo(function DiscussionCard({
           </div>
         </div>
       </div>
+
+      {isDeleteConfirming ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center px-4">
+          <button
+            type="button"
+            aria-label="Close delete confirmation"
+            disabled={pendingAction === "delete"}
+            onClick={() => setIsDeleteConfirming(false)}
+            className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+          />
+          <div className="relative z-[81] w-full max-w-md rounded-[28px] border border-rose-300/15 bg-neutral-950/96 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.45)] sm:bg-neutral-900/96 sm:backdrop-blur-xl">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-rose-200/80">Delete post</div>
+            <div className="mt-3 text-xl font-semibold tracking-tight text-white">Delete this post permanently?</div>
+            <p className="mt-3 text-sm leading-6 text-neutral-400">
+              This action cannot be undone. The post and its discussion will be removed.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={pendingAction === "delete"}
+                onClick={() => setIsDeleteConfirming(false)}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-neutral-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <FiX />
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={pendingAction === "delete"}
+                onClick={handleDelete}
+                className="inline-flex items-center gap-2 rounded-full bg-rose-200 px-4 py-2 text-sm font-medium text-rose-950 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <FiTrash2 />
+                {pendingAction === "delete" ? "Deleting..." : "Delete post"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 });
