@@ -19,5 +19,5 @@ export default function NewChatView({
         onStreamingUpdate={onStreamingUpdate}
       />
     </section>
-  );
+  );    
 }

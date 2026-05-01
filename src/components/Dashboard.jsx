@@ -417,12 +417,15 @@ export default function Dashboard({ user, onLogout, initialView }) {
     return true;
   }
 
+  
   async function handleProfileSave(nextProfile) {
     if (isLoggingOut) return;
     const trimmedDisplayName = nextProfile.displayName?.trim();
+
     if (user?.id && trimmedDisplayName) {
       await updateAccountProfile(user.id, { displayName: trimmedDisplayName });
     }
+
     await waitForUiFeedback();
     setProfile((currentProfile) => ({
       ...currentProfile,
@@ -430,7 +433,8 @@ export default function Dashboard({ user, onLogout, initialView }) {
       bio: nextProfile.bio || "",
       displayName: trimmedDisplayName || currentProfile.displayName,
       imageAlt: nextProfile.imageAlt || currentProfile.imageAlt,
-      imageSrc: nextProfile.imageSrc || "",
+      // ✅ Only update imageSrc if a new one was actually provided — never wipe it
+      imageSrc: nextProfile.imageSrc !== undefined ? nextProfile.imageSrc : currentProfile.imageSrc,
     }));
   }
 

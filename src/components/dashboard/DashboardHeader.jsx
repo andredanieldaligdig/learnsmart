@@ -57,6 +57,7 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Show local preview immediately
     const localPreview = URL.createObjectURL(file);
     setDraftProfile((current) => ({
       ...current,
@@ -64,20 +65,37 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
       imageAlt: file.name,
     }));
 
+    setSaveState("saving");
+    setErrorMessage("");
+
     try {
-      const user = (await supabase.auth.getUser()).data.user;
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
       if (!user) throw new Error("Not logged in");
 
       const publicUrl = await uploadAvatar(user.id, file);
 
-      setDraftProfile((current) => ({
-        ...current,
+      // Build the saved profile with the real public URL
+      const savedProfile = {
+        ...draftProfile,
         imageSrc: publicUrl,
         imageAlt: file.name,
-      }));
+      };
+
+      // Update local draft so the popover shows the real URL
+      setDraftProfile(savedProfile);
+
+      // ✅ Immediately persist to Dashboard state so it shows everywhere
+      await onSaveProfile(savedProfile);
+
+      setSaveState("saved");
+      window.setTimeout(() => {
+        setSaveState((currentState) => (currentState === "saved" ? "idle" : currentState));
+      }, 1400);
     } catch (err) {
       console.error("Avatar upload failed:", err);
       setErrorMessage("Image upload failed. Try again.");
+      setSaveState("idle");
     }
   }
 
@@ -135,12 +153,25 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
 
                 <label className="block">
                   <span className="text-xs text-neutral-500">Profile image</span>
+                  {draftProfile.imageSrc && !draftProfile.imageSrc.startsWith("blob:") ? (
+                    <div className="mt-2 mb-2 flex items-center gap-3">
+                      <img
+                        src={draftProfile.imageSrc}
+                        alt={draftProfile.imageAlt}
+                        className="h-12 w-12 rounded-2xl border border-white/10 object-cover"
+                      />
+                      <span className="text-xs text-neutral-400">Current avatar</span>
+                    </div>
+                  ) : null}
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
                     className="mt-2 block w-full overflow-auto rounded-xl border border-white/12 bg-black/55 px-3 py-2.5 text-sm text-neutral-300 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-black"
                   />
+                  <span className="mt-1 block text-xs text-neutral-500">
+                    Image uploads automatically save your avatar.
+                  </span>
                 </label>
 
                 <label className="block">
