@@ -210,24 +210,13 @@ export async function getLikedPostIdsByUser(userId) {
 }
 
 export async function likePost(userId, postId) {
-  // Insert into likes junction table
   const { error: likeError } = await supabase
     .from('post_likes')
     .upsert([{ user_id: userId, post_id: postId }]);
 
   if (likeError) throw likeError;
 
-  // Increment likes count on the post
-  const { data: post } = await supabase
-    .from('posts')
-    .select('likes')
-    .eq('id', postId)
-    .maybeSingle();
-
-  await supabase
-    .from('posts')
-    .update({ likes: (post?.likes || 0) + 1 })
-    .eq('id', postId);
+  await supabase.rpc('increment_likes', { post_id: postId });
 }
 
 export async function unlikePost(userId, postId) {
@@ -285,17 +274,7 @@ export async function savePostForUser(user_id, post_id) {
 
   if (error) throw error;
 
-  // Increment saves count
-  const { data: post } = await supabase
-    .from('posts')
-    .select('saves')
-    .eq('id', post_id)
-    .maybeSingle();
-
-  await supabase
-    .from('posts')
-    .update({ saves: (post?.saves || 0) + 1 })
-    .eq('id', post_id);
+  await supabase.rpc('increment_saves', { post_id: post_id });
 
   return data;
 }
