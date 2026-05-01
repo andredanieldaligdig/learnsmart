@@ -86,8 +86,8 @@ export async function getAccountProfile(userId) {
   return data;
 }
 
-// ✅ Now saves bio too
-export async function updateAccountProfile(userId, { displayName, bio }) {
+// ✅ Now saves bio and avatar_url too
+export async function updateAccountProfile(userId, { displayName, bio, avatarUrl }) {
   const trimmedDisplayName = displayName?.trim();
 
   if (!userId) throw new Error("A valid user id is required.");
@@ -108,6 +108,7 @@ export async function updateAccountProfile(userId, { displayName, bio }) {
   const updates = {};
 if (trimmedDisplayName) updates.username = trimmedDisplayName;
 if (bio !== undefined && bio !== null) updates.bio = bio ?? "";
+if (avatarUrl !== undefined && avatarUrl !== null) updates.avatar_url = avatarUrl ?? "";
 
   if (Object.keys(updates).length > 0) {
   console.log("Sending to Supabase:", { userId, updates });

@@ -532,11 +532,13 @@ try {
   console.log("Saving profile:", { 
     userId: user.id, 
     displayName: trimmedDisplayName, 
-    bio: nextProfile.bio 
+    bio: nextProfile.bio,
+    avatarUrl: nextProfile.imageSrc,
   });
   await updateAccountProfile(user.id, {
     displayName: trimmedDisplayName,
     bio: nextProfile.bio ?? "",
+    avatarUrl: nextProfile.imageSrc,
   });
 }
   await waitForUiFeedback();
