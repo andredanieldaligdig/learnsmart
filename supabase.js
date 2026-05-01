@@ -102,8 +102,8 @@ export async function updateAccountProfile(userId, { displayName, bio }) {
 
   // Build the update object
   const updates = {};
-  if (trimmedDisplayName) updates.username = trimmedDisplayName;
-  if (bio !== undefined) updates.bio = bio;
+if (trimmedDisplayName) updates.username = trimmedDisplayName;
+if (bio !== undefined && bio !== null) updates.bio = bio ?? "";
 
   if (Object.keys(updates).length > 0) {
     const { error: profileError } = await supabase
@@ -359,5 +359,32 @@ export async function getMessagesForUser(user_id) {
     .order('created_at', { ascending: true });
 
   if (error) throw error;
+  return data;
+}
+
+// ======================================================
+// CHAT SESSIONS
+// ======================================================
+
+export async function saveChatSession(userId, session) {
+  const { error } = await supabase
+    .from('chat_sessions')
+    .upsert([{
+      id: session.id,
+      user_id: userId,
+      title: session.title,
+      messages: session.messages,
+      updated_at: new Date().toISOString(),
+    }]);
+  if (error) console.error("Save chat error:", error);
+}
+
+export async function getChatSessions(userId) {
+  const { data, error } = await supabase
+    .from('chat_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false });
+  if (error) return [];
   return data;
 }

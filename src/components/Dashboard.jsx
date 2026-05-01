@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { FiMenu } from "react-icons/fi";
-import { addPost, getPosts, getLikedPostIdsByUser, getSavedPostIdsByUser, likePost, unlikePost, savePostForUser, removeSavedPostForUser, updatePost as supabaseUpdatePost, getAccountProfile, updateAccountProfile } from "../../supabase.js";
+import { addPost, getPosts, getLikedPostIdsByUser, getSavedPostIdsByUser, likePost, unlikePost, savePostForUser, removeSavedPostForUser, updatePost as supabaseUpdatePost, getAccountProfile, updateAccountProfile, saveChatSession, getChatSessions } from "../../supabase.js";
 import DashboardHeader from "./dashboard/DashboardHeader.jsx";
 import NotificationTray from "./dashboard/NotificationTray.jsx";
 import DashboardSidebar from "./dashboard/DashboardSidebar.jsx";
@@ -178,6 +178,24 @@ useEffect(() => {
   return () => { cancelled = true; };
 }, [user?.id]);
 
+// Load chats from Supabase on mount
+useEffect(() => {
+  if (!user?.id) return;
+  let cancelled = false;
+  async function loadChats() {
+    const sessions = await getChatSessions(user.id);
+    if (cancelled) return;
+    setChatSessions(sessions.map((s) => ({
+      id: s.id,
+      title: s.title,
+      updatedAt: new Date(s.updated_at).getTime(),
+      messages: s.messages || [],
+    })));
+  }
+  loadChats();
+  return () => { cancelled = true; };
+}, [user?.id]);
+
   useEffect(() => {
     if (!initialView) return;
     setActiveView(normalizeInitialView(initialView));
@@ -231,8 +249,9 @@ useEffect(() => {
       setProfile((currentProfile) => ({
         ...currentProfile,
         displayName: accountProfile?.username || getDisplayName(user),
-        imageSrc: accountProfile?.avatar_url || currentProfile.imageSrc,  // ✅ add this
-        imageAlt: accountProfile?.avatar_url ? "Profile image" : currentProfile.imageAlt,  // ✅ add this
+        bio: accountProfile?.bio || currentProfile.bio,
+        imageSrc: accountProfile?.avatar_url || currentProfile.imageSrc,
+        imageAlt: accountProfile?.avatar_url ? "Profile image" : currentProfile.imageAlt,
       }));
         } catch {
           if (cancelled) return;
@@ -334,6 +353,7 @@ useEffect(() => {
       id: createId("message"),
       role: "user",
       content: trimmedInput,
+      
     };
 
     setActiveChatId(targetId);
@@ -356,7 +376,16 @@ useEffect(() => {
     });
 
     setChatInput("");
-  }
+// Save to Supabase after state updates
+window.setTimeout(async () => {
+  const session = chatSessions.find((s) => s.id === targetId) || {
+    id: targetId,
+    title: trimmedInput,
+    messages: [userMessage],
+  };
+  await saveChatSession(user.id, session);
+}, 100);
+}
 
   // Called by ChatModule as tokens stream in
   function handleStreamingUpdate(messageId, content, streaming) {
@@ -453,23 +482,24 @@ useEffect(() => {
     if (!trimmedContent) return false;
     await waitForUiFeedback();
     const nextComment = createComment({ authorName: displayName, content: trimmedContent });
-    setDiscussionPosts((currentPosts) =>
-      currentPosts.map((post) =>
-        post.id === postId
-          ? { ...post, comments: [...post.comments, nextComment] }
-          : post
-      )
-    );
-    try {
-    const post = discussionPosts.find((p) => p.id === postId);
-    const updatedComments = [
-      ...(post?.comments || []),
-      { id: nextComment.id, text: trimmedContent, user: displayName },
-    ];
-    await supabaseUpdatePost(postId, { comments: updatedComments });
-  } catch (err) {
-    console.error("Comment save failed:", err);
-  }
+try {
+  const post = discussionPosts.find((p) => p.id === postId);
+  const updatedComments = [
+    ...(post?.comments || []),
+    { id: nextComment.id, text: trimmedContent, user: displayName },
+  ];
+  await supabaseUpdatePost(postId, { comments: updatedComments });
+  // Only update local state after Supabase confirms
+  setDiscussionPosts((currentPosts) =>
+    currentPosts.map((p) =>
+      p.id === postId
+        ? { ...p, comments: [...p.comments, nextComment] }
+        : p
+    )
+  );
+} catch (err) {
+  console.error("Comment save failed:", err);
+}
     setNotifications((currentNotifications) => [
       createNotification({
         title: "New comment on your post",
