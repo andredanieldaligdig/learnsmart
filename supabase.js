@@ -140,20 +140,26 @@ export async function getCurrentUser() {
 // ✅ Create a post with author display name (not email)
 export async function addPost(userId, displayName, content) {
   const payload = {
-    content: content || "",
-    likes: 0,
-    comments: [],
-    user_id: userId || null,
-    author: displayName || "Anonymous",
-  };
+  title: "",
+  content: content || "",
+  likes: 0,
+  saves: 0,
+  comments: [],
+  user_id: userId || null,
+  author: displayName || "Anonymous",
+};
 
   const { data, error } = await supabase
     .from('posts')
     .insert([payload])
     .select();
 
-  if (error) throw error;
-  return data;
+  if (error) {
+  console.error("addPost error:", error);
+  throw error;
+}
+console.log("addPost success:", data);
+return data;
 }
 
 export async function updatePost(id, changes) {
