@@ -168,7 +168,13 @@ export async function logout() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
-
+export async function sendPasswordReset(email) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://learnsmart-wfmv.vercel.app/reset-password",
+  });
+  
+  if (error) throw error;
+}
 export async function getCurrentUser() {
   const { data } = await supabase.auth.getUser();
   return data.user;
