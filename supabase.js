@@ -148,8 +148,39 @@ export async function getCurrentUser() {
 // POSTS — wired to Supabase
 // ======================================================
 
+// ✅ Ensure account exists (creates if missing)
+async function ensureAccountExists(userId, displayName) {
+  if (!userId) return;
+  
+  try {
+    const { data: existing } = await supabase
+      .from("accounts")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+    
+    if (!existing) {
+      // Account doesn't exist, create it
+      const { error: createError } = await supabase
+        .from("accounts")
+        .insert([{ id: userId, username: displayName || "Anonymous" }]);
+      
+      if (createError && createError.code !== '23505') { // 23505 = unique violation (already exists)
+        console.error("Failed to ensure account exists:", createError);
+      }
+    }
+  } catch (err) {
+    console.error("Error ensuring account exists:", err);
+  }
+}
+
 // ✅ Create a post with author display name (not email)
 export async function addPost(userId, displayName, content) {
+  // Ensure account exists before posting
+  if (userId) {
+    await ensureAccountExists(userId, displayName);
+  }
+
   const payload = {
   title: "",
   content: content || "",
