@@ -110,12 +110,18 @@ if (trimmedDisplayName) updates.username = trimmedDisplayName;
 if (bio !== undefined && bio !== null) updates.bio = bio ?? "";
 
   if (Object.keys(updates).length > 0) {
-    const { error: profileError } = await supabase
-      .from("accounts")
-      .update(updates)
-      .eq("id", userId);
-    if (profileError) throw profileError;
+  console.log("Sending to Supabase:", { userId, updates });
+  const { data, error: profileError } = await supabase
+    .from("accounts")
+    .update(updates)
+    .eq("id", userId)
+    .select();
+  console.log("Supabase response:", { data, profileError });
+  if (profileError) {
+    console.error("Profile update error:", profileError);
+    throw profileError;
   }
+}
 
   return null;
 }
