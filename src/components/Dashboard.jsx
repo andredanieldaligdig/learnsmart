@@ -187,15 +187,17 @@ export default function Dashboard({ user, onLogout, initialView }) {
         return;
       }
       try {
-        const accountProfile = await getAccountProfile(user.id);
-        if (cancelled) return;
-        setProfile((currentProfile) => ({
-          ...currentProfile,
-          displayName: accountProfile?.username || getDisplayName(user),
-        }));
-      } catch {
-        if (cancelled) return;
-        setProfile((currentProfile) => ({ ...currentProfile, displayName: getDisplayName(user) }));
+      const accountProfile = await getAccountProfile(user.id);
+      if (cancelled) return;
+      setProfile((currentProfile) => ({
+        ...currentProfile,
+        displayName: accountProfile?.username || getDisplayName(user),
+        imageSrc: accountProfile?.avatar_url || currentProfile.imageSrc,  // ✅ add this
+        imageAlt: accountProfile?.avatar_url ? "Profile image" : currentProfile.imageAlt,  // ✅ add this
+      }));
+        } catch {
+          if (cancelled) return;
+          setProfile((currentProfile) => ({ ...currentProfile, displayName: getDisplayName(user) }));
       }
     }
 
