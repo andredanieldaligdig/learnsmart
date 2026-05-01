@@ -34,11 +34,14 @@ export async function createAccount(email, password, displayName, gender, dob) {
   const user = data.user;
 
   if (user) {
-    const { error: profileError } = await supabase
-      .from('accounts')
-      .insert([{ id: user.id, email, username: displayName, gender, dob }]);
-    if (profileError) throw profileError;
-  }
+  // Wait briefly for the trigger to create the row first
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  const { error: profileError } = await supabase
+    .from('accounts')
+    .update({ username: displayName, gender, dob })
+    .eq('id', user.id);
+  if (profileError) throw profileError;
+}
 
   return user;
 }
