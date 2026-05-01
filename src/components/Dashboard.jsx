@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { FiMenu } from "react-icons/fi";
-import { getAccountProfile, updateAccountProfile } from "../../supabase.js";
+import { addPost, getPosts, getLikedPostIdsByUser, getSavedPostIdsByUser, likePost, unlikePost, savePostForUser, removeSavedPostForUser, updatePost as supabaseUpdatePost, getAccountProfile, updateAccountProfile } from "../../supabase.js";
 import DashboardHeader from "./dashboard/DashboardHeader.jsx";
 import NotificationTray from "./dashboard/NotificationTray.jsx";
 import DashboardSidebar from "./dashboard/DashboardSidebar.jsx";
@@ -138,6 +138,45 @@ export default function Dashboard({ user, onLogout, initialView }) {
     imageSrc: "",
     imageAlt: "<INSERT PROFILE IMAGE HERE>",
   }));
+  // Load posts + liked/saved IDs from Supabase on mount
+useEffect(() => {
+  if (!user?.id) return;
+  let cancelled = false;
+  async function loadData() {
+    try {
+      const [rawPosts, likedIds, savedIds] = await Promise.all([
+        getPosts(),
+        getLikedPostIdsByUser(user.id),
+        getSavedPostIdsByUser(user.id),
+      ]);
+      if (cancelled) return;
+      const normalized = rawPosts.map((r) => ({
+        id: r.id,
+        authorName: r.author || "Anonymous",
+        authorUserId: r.user_id || null,
+        authorBio: "",
+        authorImageAlt: "",
+        authorImageSrc: "",
+        content: r.content || "",
+        createdAt: new Date(r.created_at).getTime(),
+        likes: r.likes || 0,
+        saves: r.saves || 0,
+        comments: (r.comments || []).map((c) =>
+          typeof c === "string"
+            ? { id: c, authorName: "Anonymous", content: c, createdAt: Date.now() }
+            : { id: c.id || Math.random(), authorName: c.user || "Anonymous", content: c.text || c.content || "", createdAt: Date.now() }
+        ),
+      }));
+      setDiscussionPosts(normalized);
+      setLikedPostIds(likedIds);
+      setSavedPostIds(savedIds);
+    } catch (err) {
+      console.error("Failed to load data:", err);
+    }
+  }
+  loadData();
+  return () => { cancelled = true; };
+}, [user?.id]);
 
   useEffect(() => {
     if (!initialView) return;
@@ -349,51 +388,64 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   async function handleCreatePost(content) {
-    if (isLoggingOut) return null;
-    await waitForUiFeedback();
-    const nextPost = createDiscussionPost({
-      authorBio: profile.bio,
-      authorImageAlt: profile.imageAlt,
-      authorImageSrc: profile.imageSrc,
-      authorName: displayName,
-      authorUserId: user?.id,
-      content,
-    });
-    setDiscussionPosts((currentPosts) => [nextPost, ...currentPosts]);
-    return nextPost;
+  if (isLoggingOut) return null;
+  await waitForUiFeedback();
+  const nextPost = createDiscussionPost({
+    authorBio: profile.bio,
+    authorImageAlt: profile.imageAlt,
+    authorImageSrc: profile.imageSrc,
+    authorName: displayName,
+    authorUserId: user?.id,
+    content,
+  });
+  setDiscussionPosts((currentPosts) => [nextPost, ...currentPosts]);
+  // Persist to Supabase
+  try {
+    const saved = await addPost(user?.id, displayName, content);
+    const inserted = saved?.[0];
+    if (inserted) {
+      setDiscussionPosts((currentPosts) =>
+        currentPosts.map((p) => p.id === nextPost.id ? { ...nextPost, id: inserted.id } : p)
+      );
+    }
+  } catch (err) {
+    console.error("Failed to save post:", err);
   }
+  return nextPost;
+}
 
-  function handleLikePost(postId) {
-    if (isLoggingOut) return;
-    if (likedPostIds.includes(postId)) return;
-    setLikedPostIds((ids) => [...ids, postId]);
-    setDiscussionPosts((currentPosts) =>
-      currentPosts.map((post) =>
-        post.id === postId ? { ...post, likes: post.likes + 1 } : post
-      )
-    );
-    setNotifications((currentNotifications) => [
-      createNotification({
-        title: "New like on your post",
-        detail: `${displayName} liked one of your discussion posts.`,
-        postId,
-      }),
-      ...currentNotifications,
-    ]);
+  async function handleLikePost(postId) {
+  if (isLoggingOut) return;
+  if (likedPostIds.includes(postId)) return;
+  setLikedPostIds((ids) => [...ids, postId]);
+  setDiscussionPosts((currentPosts) =>
+    currentPosts.map((post) =>
+      post.id === postId ? { ...post, likes: post.likes + 1 } : post
+    )
+  );
+  try {
+    await likePost(user.id, postId);
+  } catch (err) {
+    console.error("Like failed:", err);
   }
-
+  }
   async function handleSavePost(postId) {
-    if (isLoggingOut) return false;
-    if (savedPostIds.includes(postId)) return false;
-    await waitForUiFeedback();
-    setSavedPostIds((ids) => [...ids, postId]);
-    setDiscussionPosts((currentPosts) =>
-      currentPosts.map((post) =>
-        post.id === postId ? { ...post, saves: post.saves + 1 } : post
-      )
-    );
-    return true;
+  if (isLoggingOut) return false;
+  if (savedPostIds.includes(postId)) return false;
+  await waitForUiFeedback();
+  setSavedPostIds((ids) => [...ids, postId]);
+  setDiscussionPosts((currentPosts) =>
+    currentPosts.map((post) =>
+      post.id === postId ? { ...post, saves: post.saves + 1 } : post
+    )
+  );
+  try {
+    await savePostForUser(user.id, postId);
+  } catch (err) {
+    console.error("Save failed:", err);
   }
+  return true;
+}
 
   async function handleCommentPost(postId, content) {
     if (isLoggingOut) return false;
@@ -408,6 +460,16 @@ export default function Dashboard({ user, onLogout, initialView }) {
           : post
       )
     );
+    try {
+    const post = discussionPosts.find((p) => p.id === postId);
+    const updatedComments = [
+      ...(post?.comments || []),
+      { id: nextComment.id, text: trimmedContent, user: displayName },
+    ];
+    await supabaseUpdatePost(postId, { comments: updatedComments });
+  } catch (err) {
+    console.error("Comment save failed:", err);
+  }
     setNotifications((currentNotifications) => [
       createNotification({
         title: "New comment on your post",
@@ -421,33 +483,33 @@ export default function Dashboard({ user, onLogout, initialView }) {
 
   
   async function handleProfileSave(nextProfile) {
-    if (isLoggingOut) return;
-    const trimmedDisplayName = nextProfile.displayName?.trim();
-
-    if (user?.id && trimmedDisplayName) {
-      await updateAccountProfile(user.id, { displayName: trimmedDisplayName });
-    }
-
-    await waitForUiFeedback();
-    setProfile((currentProfile) => ({
-      ...currentProfile,
-      ...nextProfile,
-      bio: nextProfile.bio || "",
-      displayName: trimmedDisplayName || currentProfile.displayName,
-      imageAlt: nextProfile.imageAlt || currentProfile.imageAlt,
-      // ✅ Only update imageSrc if a new one was actually provided — never wipe it
-      imageSrc: nextProfile.imageSrc !== undefined ? nextProfile.imageSrc : currentProfile.imageSrc,
-    }));
+  if (isLoggingOut) return;
+  const trimmedDisplayName = nextProfile.displayName?.trim();
+  if (user?.id) {
+    await updateAccountProfile(user.id, {
+      displayName: trimmedDisplayName,
+      bio: nextProfile.bio ?? "",
+    });
   }
+  await waitForUiFeedback();
+  setProfile((currentProfile) => ({
+    ...currentProfile,
+    ...nextProfile,
+    bio: nextProfile.bio || "",
+    displayName: trimmedDisplayName || currentProfile.displayName,
+    imageAlt: nextProfile.imageAlt || currentProfile.imageAlt,
+    imageSrc: nextProfile.imageSrc !== undefined ? nextProfile.imageSrc : currentProfile.imageSrc,
+  }));
+}
 
-  async function handleLogoutRequest() {
-    if (isLoggingOut) return;
-    setIsLoggingOut(true);
-    closeSidebar();
-    closeNotifications();
-    await waitForUiFeedback(850);
-    await onLogout();
-  }
+async function handleLogoutRequest() {
+  if (isLoggingOut) return;
+  setIsLoggingOut(true);
+  closeSidebar();
+  closeNotifications();
+  await waitForUiFeedback(850);
+  await onLogout();
+}
 
   function renderView() {
     if (activeView === DASHBOARD_VIEWS.NEW_CHAT) {
