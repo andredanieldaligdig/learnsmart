@@ -88,7 +88,7 @@ export async function uploadAvatar(userId, file) {
 export async function getAccountProfile(userId) {
   const { data, error } = await supabase
     .from("accounts")
-    .select("username")
+    .select("username, avatar_url")
     .eq("id", userId)
     .maybeSingle();
 
