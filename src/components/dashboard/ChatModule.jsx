@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { FiArrowUp, FiSquare } from "react-icons/fi";
 
-const AI_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+const AI_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const AI_CHAT_ENDPOINT = AI_API_BASE_URL ? `${AI_API_BASE_URL}/api/chat` : "/api/chat";
 const AI_SYSTEM_PROMPT =
   "You are LearnSmart's AI study assistant. You help students understand difficult concepts, prepare for exams, explain topics clearly, and provide study strategies. Be concise but thorough, use examples where helpful, and keep an encouraging, supportive tone.";
+const REVEAL_FRAME_MS = 18;
+const REVEAL_MIN_CHUNK = 1;
+const REVEAL_MAX_CHUNK = 16;
 
 function MessageBubble({ message }) {
   const role = typeof message.role === "string" ? message.role.toLowerCase() : "";
   const isUser = role === "user" || role === "human";
   const bubbleMaxWidth = "max-w-[85%] sm:max-w-[75%] lg:max-w-[60%]";
-  const isStreaming = message.streaming && message.content === "";
+  const isLoadingState = message.streaming && message.content === "";
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -20,21 +24,34 @@ function MessageBubble({ message }) {
           </div>
         </div>
       ) : (
-        <div className={`${bubbleMaxWidth} rounded-3xl bg-white/[0.04] px-5 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.2)]`}>
-          {isStreaming ? (
+        <div
+          className={[
+            bubbleMaxWidth,
+            "chat-assistant-bubble relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-4 shadow-[0_12px_36px_rgba(0,0,0,0.22)]",
+          ].join(" ")}
+        >
+          <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.26em] text-white/32">
+            <span className="h-px w-6 bg-white/16" />
+            LearnSmart AI
+          </div>
+
+          {message.streaming ? <div className="chat-assistant-wave pointer-events-none absolute inset-0" /> : null}
+
+          {isLoadingState ? (
             <div className="flex items-center gap-1.5 py-1">
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:0ms]" />
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:150ms]" />
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:300ms]" />
             </div>
           ) : (
-            <div className="whitespace-pre-wrap text-[15px] leading-7 text-neutral-200">
+            <div className="chat-assistant-copy whitespace-pre-wrap text-[15px] leading-7 text-neutral-200">
               {message.content}
               {message.streaming ? (
                 <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-neutral-400 align-middle" />
               ) : null}
             </div>
           )}
+
           {message.note ? <div className="mt-3 text-xs text-neutral-500">{message.note}</div> : null}
         </div>
       )}
@@ -54,6 +71,7 @@ export default function ChatModule({
   const textareaRef = useRef(null);
   const messagesEndRef = useRef(null);
   const abortControllerRef = useRef(null);
+  const revealStateRef = useRef({ cancelled: false, timerId: null });
   const [isStreaming, setIsStreaming] = useState(false);
 
   useEffect(() => {
@@ -69,6 +87,14 @@ export default function ChatModule({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    return () => {
+      if (revealStateRef.current.timerId) {
+        window.clearTimeout(revealStateRef.current.timerId);
+      }
+    };
+  }, []);
+
   // Check if last message is an assistant placeholder that needs streaming
   useEffect(() => {
     const lastMsg = messages[messages.length - 1];
@@ -83,8 +109,40 @@ export default function ChatModule({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
+  function waitForRevealFrame(duration) {
+    return new Promise((resolve) => {
+      revealStateRef.current.timerId = window.setTimeout(() => {
+        revealStateRef.current.timerId = null;
+        resolve();
+      }, duration);
+    });
+  }
+
+  async function revealAssistantResponse(messageId, content) {
+    revealStateRef.current.cancelled = false;
+
+    let currentIndex = 0;
+
+    while (currentIndex < content.length) {
+      if (revealStateRef.current.cancelled) {
+        return false;
+      }
+
+      const progress = currentIndex / Math.max(content.length, 1);
+      const nextChunkSize = Math.max(
+        REVEAL_MIN_CHUNK,
+        Math.round(REVEAL_MIN_CHUNK + (REVEAL_MAX_CHUNK - REVEAL_MIN_CHUNK) * progress)
+      );
+
+      currentIndex = Math.min(content.length, currentIndex + nextChunkSize);
+      onStreamingUpdate?.(messageId, content.slice(0, currentIndex), true);
+      await waitForRevealFrame(REVEAL_FRAME_MS);
+    }
+
+    return !revealStateRef.current.cancelled;
+  }
+
   async function streamResponse(allMessages) {
-    // Build the conversation history for the API, excluding the placeholder
     const history = allMessages
       .filter((m) => !(m.role === "assistant" && m.content === "ai is thinking..."))
       .map((m) => ({
@@ -96,13 +154,12 @@ export default function ChatModule({
     if (!placeholderMsg) return;
 
     setIsStreaming(true);
-    // Mark the placeholder as streaming with empty content so we show the dots
     onStreamingUpdate?.(placeholderMsg.id, "", true);
 
     abortControllerRef.current = new AbortController();
 
     try {
-      const response = await fetch(`${AI_API_BASE_URL}/api/chat`, {
+      const response = await fetch(AI_CHAT_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -121,12 +178,15 @@ export default function ChatModule({
 
       const payload = await response.json();
       const accumulated = payload?.content?.trim() || "Sorry, I couldn't generate a response.";
+      const completedReveal = await revealAssistantResponse(placeholderMsg.id, accumulated);
 
-      // Finalize: mark streaming done
-      onStreamingUpdate?.(placeholderMsg.id, accumulated, false);
+      if (completedReveal) {
+        onStreamingUpdate?.(placeholderMsg.id, accumulated, false);
+      } else {
+        onStreamingUpdate?.(placeholderMsg.id, null, false);
+      }
     } catch (err) {
       if (err.name === "AbortError") {
-        // User cancelled — keep whatever text was accumulated
         onStreamingUpdate?.(placeholderMsg.id, null, false);
       } else {
         console.error("Streaming error:", err);
@@ -139,10 +199,16 @@ export default function ChatModule({
     } finally {
       setIsStreaming(false);
       abortControllerRef.current = null;
+      revealStateRef.current.cancelled = false;
     }
   }
 
   function handleStop() {
+    revealStateRef.current.cancelled = true;
+    if (revealStateRef.current.timerId) {
+      window.clearTimeout(revealStateRef.current.timerId);
+      revealStateRef.current.timerId = null;
+    }
     abortControllerRef.current?.abort();
   }
 
@@ -205,7 +271,7 @@ export default function ChatModule({
                 type="button"
                 onClick={handleSubmit}
                 disabled={!chatInput.trim()}
-                className="mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Send message"
               >
                 <FiArrowUp className="text-sm" />
