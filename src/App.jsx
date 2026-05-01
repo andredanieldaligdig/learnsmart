@@ -6,7 +6,7 @@ import ForgotPassword from "./components/forgot-password.jsx";
 import ResetPassword from "./components/reset-password.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import { DASHBOARD_VIEWS } from "./components/dashboard/dashboardConfig.js";
-import { supabase, logout } from "../supabase.js";
+import { supabase, supabaseConfigError, logout } from "../supabase.js";
 import PostLoginSplash from "./components/PostLoginSplash.jsx";
 
 const DASHBOARD_VIEW_STORAGE_KEY = "learnsmart-dashboard-view";
@@ -61,6 +61,35 @@ function AuthPageSkeleton() {
           <SkeletonBlock className="h-14 w-full rounded-[24px]" />
           <SkeletonBlock className="h-12 w-full rounded-[24px]" />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DeploymentErrorScreen() {
+  return (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4 text-neutral-100">
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.12),_transparent_32%),linear-gradient(135deg,rgba(10,10,10,1)_0%,rgba(24,24,27,1)_54%,rgba(9,9,11,1)_100%)]" />
+        <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-white/8 blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-xl rounded-[32px] border border-white/10 bg-neutral-950/80 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.42)] backdrop-blur-2xl">
+        <div className="text-[11px] uppercase tracking-[0.28em] text-white/35">Deployment Error</div>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">This Vercel build is missing environment variables.</h1>
+        <p className="mt-4 text-sm leading-7 text-neutral-300">
+          Add these in Vercel Project Settings under Environment Variables, then redeploy the project.
+        </p>
+        <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 font-mono text-sm text-neutral-200">
+          <div>VITE_SUPABASE_URL</div>
+          <div>VITE_SUPABASE_ANON_KEY</div>
+          <div>OPENROUTER_API_KEY</div>
+          <div>OPENROUTER_MODEL</div>
+          <div>PUBLIC_APP_URL</div>
+        </div>
+        <p className="mt-4 text-xs leading-6 text-neutral-500">
+          Root directory should be <span className="font-mono text-neutral-300">frontend</span>. Current startup error: {supabaseConfigError || "unknown"}.
+        </p>
       </div>
     </div>
   );
@@ -182,6 +211,11 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (supabaseConfigError || !supabase) {
+      setLoading(false);
+      return;
+    }
+
     let active = true;
 
     async function bootstrapSession() {
@@ -212,6 +246,10 @@ export default function App() {
     await logout();
     setUser(null);
   };
+
+  if (supabaseConfigError || !supabase) {
+    return <DeploymentErrorScreen />;
+  }
 
   return loading ? (
     <LoadingScreen />
