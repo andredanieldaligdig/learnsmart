@@ -1,7 +1,20 @@
 import { FiBell, FiX } from "react-icons/fi";
-import PlaceholderBlock from "./PlaceholderBlock.jsx";
 
-export default function NotificationTray({ isOpen, notifications, onClose, onNotificationClick }) {
+function NotificationSkeletonCard() {
+  return (
+    <div className="animate-pulse rounded-[28px] border border-white/10 bg-white/[0.04] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="h-4 w-40 rounded-full bg-white/[0.08]" />
+        <div className="h-3 w-10 rounded-full bg-white/[0.06]" />
+      </div>
+      <div className="mt-3 h-3 w-full rounded-full bg-white/[0.06]" />
+      <div className="mt-2 h-3 w-4/5 rounded-full bg-white/[0.06]" />
+      <div className="mt-4 h-3 w-16 rounded-full bg-white/[0.06]" />
+    </div>
+  );
+}
+
+export default function NotificationTray({ isOpen, isLoading = false, notifications, onClose, onNotificationClick }) {
   return (
     <>
       <div
@@ -50,7 +63,13 @@ export default function NotificationTray({ isOpen, notifications, onClose, onNot
             </div>
           </div>
 
-          {notifications.length ? (
+          {isLoading ? (
+            <>
+              <NotificationSkeletonCard />
+              <NotificationSkeletonCard />
+              <NotificationSkeletonCard />
+            </>
+          ) : notifications.length ? (
             notifications.map((notification) => (
               <button
                 type="button"
@@ -71,11 +90,9 @@ export default function NotificationTray({ isOpen, notifications, onClose, onNot
               </button>
             ))
           ) : (
-            <PlaceholderBlock
-              label="Notification placeholder"
-              lines={["<NOTIFICATION_ITEMS>", "<SEND_NOTIFICATION_TO_POST_OWNER>"]}
-              note="The tray stays empty until a user action creates a local placeholder event."
-            />
+            <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-neutral-400">
+              No notifications yet.
+            </div>
           )}
         </div>
       </aside>

@@ -27,6 +27,7 @@ function SidebarNavItem({ active, icon: Icon, label, onClick }) {
 export default function DashboardSidebar({
   activeChatId,
   activeView,
+  isLoggingOut,
   isEmptyDraftChat,
   isOpen,
   profile,
@@ -72,9 +73,11 @@ export default function DashboardSidebar({
             icon={item.icon}
             label={item.label}
             onClick={
-              item.id === DASHBOARD_VIEWS.NEW_CHAT
-                ? onNewChat
-                : () => onSelectView(item.id)
+              isLoggingOut
+                ? () => {}
+                : item.id === DASHBOARD_VIEWS.NEW_CHAT
+                  ? onNewChat
+                  : () => onSelectView(item.id)
             }
           />
         ))}
@@ -97,6 +100,7 @@ export default function DashboardSidebar({
                       ? "bg-white/[0.08] text-white"
                       : "text-neutral-400 hover:bg-white/[0.05] hover:text-white",
                   ].join(" ")}
+                  disabled={isLoggingOut}
                 >
                   <div className="truncate">{chat.title}</div>
                 </button>
@@ -123,10 +127,16 @@ export default function DashboardSidebar({
         <button
           type="button"
           onClick={onLogout}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-white/[0.06] px-4 py-2 text-sm text-neutral-300 transition hover:bg-white/[0.1] hover:text-white"
+          disabled={isLoggingOut}
+          className={[
+            "mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm transition",
+            isLoggingOut
+              ? "cursor-wait bg-white text-black"
+              : "bg-white/[0.06] text-neutral-300 hover:bg-white/[0.1] hover:text-white",
+          ].join(" ")}
         >
           <FiLogOut />
-          Logout
+          {isLoggingOut ? "Logging out..." : "Logout"}
         </button>
       </div>
     </aside>

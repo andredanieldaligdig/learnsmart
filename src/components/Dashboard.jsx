@@ -124,6 +124,8 @@ export default function Dashboard({ user, onLogout, initialView }) {
   const [likedPostIds, setLikedPostIds] = useState([]);
   const [savedPostIds, setSavedPostIds] = useState([]);
   const [isNotificationTrayOpen, setIsNotificationTrayOpen] = useState(false);
+  const [isNotificationsLoading, setIsNotificationsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [highlightedPostId, setHighlightedPostId] = useState(null);
   const [mySpaceTab, setMySpaceTab] = useState(() => {
@@ -155,6 +157,14 @@ export default function Dashboard({ user, onLogout, initialView }) {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(MY_SPACE_TAB_STORAGE_KEY, mySpaceTab);
   }, [mySpaceTab]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setIsNotificationsLoading(false);
+    }, 450);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     if (!highlightedPostId) return;
@@ -241,10 +251,12 @@ export default function Dashboard({ user, onLogout, initialView }) {
   const unreadNotificationCount = notifications.filter((notification) => notification.unread).length;
 
   function closeSidebar() {
+    if (isLoggingOut) return;
     setIsSidebarOpen(false);
   }
 
   function openNotifications() {
+    if (isLoggingOut) return;
     setIsNotificationTrayOpen(true);
     setNotifications((currentNotifications) =>
       currentNotifications.map((notification) => ({
@@ -255,10 +267,12 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   function closeNotifications() {
+    if (isLoggingOut) return;
     setIsNotificationTrayOpen(false);
   }
 
   function handleNotificationSelect(notification) {
+    if (isLoggingOut) return;
     setIsNotificationTrayOpen(false);
     setNotifications((currentNotifications) =>
       currentNotifications.map((currentNotification) =>
@@ -278,12 +292,14 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   function openView(viewId) {
+    if (isLoggingOut) return;
     setHighlightedPostId(null);
     setActiveView(viewId);
     closeSidebar();
   }
 
   function handleNewChat() {
+    if (isLoggingOut) return;
     setHighlightedPostId(null);
 
     if (activeChat && activeChat.messages.length === 0) {
@@ -303,6 +319,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   function handleChatSubmit() {
+    if (isLoggingOut) return;
     const trimmedInput = chatInput.trim();
 
     if (!trimmedInput) return;
@@ -338,6 +355,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   function handleRecentChatSelect(chatId) {
+    if (isLoggingOut) return;
     setHighlightedPostId(null);
     setActiveChatId(chatId);
     setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
@@ -345,6 +363,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   async function handleCreatePost(content) {
+    if (isLoggingOut) return null;
     await waitForUiFeedback();
 
     const nextPost = createDiscussionPost({
@@ -361,6 +380,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   function handleLikePost(postId) {
+    if (isLoggingOut) return;
     if (likedPostIds.includes(postId)) return;
 
     setLikedPostIds((currentLikedPostIds) => [...currentLikedPostIds, postId]);
@@ -385,6 +405,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   async function handleSavePost(postId) {
+    if (isLoggingOut) return false;
     if (savedPostIds.includes(postId)) return false;
 
     await waitForUiFeedback();
@@ -404,6 +425,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   async function handleCommentPost(postId, content) {
+    if (isLoggingOut) return false;
     const trimmedContent = content.trim();
 
     if (!trimmedContent) return false;
@@ -437,6 +459,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   async function handleProfileSave(nextProfile) {
+    if (isLoggingOut) return;
     const trimmedDisplayName = nextProfile.displayName?.trim();
 
     if (user?.id && trimmedDisplayName) {
@@ -452,6 +475,16 @@ export default function Dashboard({ user, onLogout, initialView }) {
       imageAlt: nextProfile.imageAlt || currentProfile.imageAlt,
       imageSrc: nextProfile.imageSrc || "",
     }));
+  }
+
+  async function handleLogoutRequest() {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    closeSidebar();
+    closeNotifications();
+    await waitForUiFeedback(850);
+    await onLogout();
   }
 
   function renderView() {
@@ -522,8 +555,9 @@ export default function Dashboard({ user, onLogout, initialView }) {
         profile={profile}
         recentChats={recentChats}
         user={user}
+        isLoggingOut={isLoggingOut}
         onClose={closeSidebar}
-        onLogout={onLogout}
+        onLogout={handleLogoutRequest}
         onNewChat={handleNewChat}
         onSelectChat={handleRecentChatSelect}
         onSelectView={openView}
@@ -531,6 +565,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
 
       <NotificationTray
         isOpen={isNotificationTrayOpen}
+        isLoading={isNotificationsLoading}
         notifications={notifications}
         onClose={closeNotifications}
         onNotificationClick={handleNotificationSelect}
@@ -573,6 +608,23 @@ export default function Dashboard({ user, onLogout, initialView }) {
           </div>
         </main>
       </div>
+
+      {isLoggingOut ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-neutral-950/84 backdrop-blur-xl">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_transparent_32%),linear-gradient(135deg,rgba(10,10,10,0.98)_0%,rgba(24,24,27,0.99)_54%,rgba(9,9,11,1)_100%)] animate-gradient" />
+            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/8 blur-3xl" />
+            <div className="absolute -bottom-40 -left-32 h-96 w-96 rounded-full bg-white/6 blur-3xl" />
+            <div className="absolute inset-0 bg-dot-grid opacity-15 animate-grid" />
+          </div>
+
+          <div className="relative flex flex-col items-center gap-4 px-6 text-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/15 border-t-white" />
+            <div className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Logging out</div>
+            <div className="text-sm text-white/70">Securing your session and returning to login.</div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

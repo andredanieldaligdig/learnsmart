@@ -107,7 +107,7 @@ export default function MySpaceView({
           </div>
 
           <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-neutral-300">
-            {profile.bio?.trim() || "Keep your profile polished with a short bio about your academic focus and goals."}
+            {profile.bio?.trim() || "No bio added yet."}
           </div>
         </div>
 
