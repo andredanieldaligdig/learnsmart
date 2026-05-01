@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiCheck,
   FiChevronDown,
@@ -55,18 +55,29 @@ function StatPill({ label, value }) {
   );
 }
 
-function AuthorPostsPanel({ post, posts }) {
-  const recentPosts = posts
-    .filter((candidatePost) => {
-      return getAuthorKey(candidatePost) === getAuthorKey(post);
-    })
-    .sort((left, right) => right.createdAt - left.createdAt)
-    .slice(0, 6);
+const EMPTY_POSTS = [];
+
+const AuthorPostsPanel = memo(function AuthorPostsPanel({ post, recentPosts, onClose }) {
   const authorBio = post.authorBio?.trim() || "This user has not added a bio yet.";
 
   return (
-    <div className="rounded-[26px] border border-white/10 bg-neutral-950/95 p-4">
-      <div>
+    <aside className="discussion-author-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-[28rem] flex-col bg-neutral-950/98 px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:max-w-[30rem] sm:bg-neutral-900/96 sm:backdrop-blur-md">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-[0.28em] text-neutral-500">LearnSmart</div>
+          <div className="mt-1 text-base font-medium text-white">Profile</div>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.06] text-neutral-300 transition hover:bg-white/[0.1] hover:text-white"
+          aria-label="Close profile panel"
+        >
+          <FiX />
+        </button>
+      </div>
+
+      <div className="mt-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
         <div className="flex items-center gap-3">
           <ProfileAvatar
             displayName={post.authorName}
@@ -80,33 +91,47 @@ function AuthorPostsPanel({ post, posts }) {
           </div>
         </div>
 
-        <p className="mt-3 text-sm leading-6 text-neutral-300">{authorBio}</p>
+        <div className="discussion-author-panel-content mt-4 flex-1 rounded-[24px] border border-white/10 bg-black/20 p-4">
+          <div className="space-y-5">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Bio</div>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-neutral-300">{authorBio}</p>
+            </div>
 
-        <div className="mt-4">
-          <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Recent posts</div>
-          <div className="mt-3 space-y-2">
-            {recentPosts.map((recentPost) => (
-              <div
-                key={recentPost.id}
-                className={[
-                  "rounded-2xl border px-3 py-3 text-sm",
-                  recentPost.id === post.id
-                    ? "border-white/15 bg-white/[0.06] text-white"
-                    : "border-white/8 bg-white/[0.03] text-neutral-300",
-                ].join(" ")}
-              >
-                <div className="text-xs text-neutral-500">{formatPostAge(recentPost.createdAt)}</div>
-                <p className="mt-2 max-h-[4.5rem] overflow-hidden whitespace-pre-wrap leading-6">{recentPost.content}</p>
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Recent posts</div>
+                <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] text-neutral-400">
+                  {recentPosts.length} shared
+                </div>
               </div>
-            ))}
+              <div className="mt-3 space-y-3">
+                {recentPosts.map((recentPost) => (
+                  <div
+                    key={recentPost.id}
+                    className={[
+                      "discussion-author-post-card flex min-h-[11.5rem] flex-col rounded-2xl border px-4 py-4 text-sm",
+                      recentPost.id === post.id
+                        ? "border-white/15 bg-white/[0.06] text-white"
+                        : "border-white/8 bg-white/[0.03] text-neutral-300",
+                    ].join(" ")}
+                  >
+                    <div className="text-xs text-neutral-500">{formatPostAge(recentPost.createdAt)}</div>
+                    <div className="mt-3 flex-1 overflow-y-auto pr-1">
+                      <p className="whitespace-pre-wrap leading-6">{recentPost.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </aside>
   );
-}
+});
 
-function DiscussionCard({
+const DiscussionCard = memo(function DiscussionCard({
   currentUserId,
   hasLiked,
   hasSaved,
@@ -128,6 +153,7 @@ function DiscussionCard({
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+  const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
   const [pendingAction, setPendingAction] = useState("");
   const [successfulAction, setSuccessfulAction] = useState("");
   const isOwnPost = Boolean(currentUserId) && post.authorUserId === currentUserId;
@@ -214,13 +240,15 @@ function DiscussionCard({
   async function handleDelete() {
     if (pendingAction === "delete") return;
 
-    const shouldDelete = window.confirm("Delete this post?");
-    if (!shouldDelete) return;
-
     setIsActionsMenuOpen(false);
     setPendingAction("delete");
-    await onDeletePost(post.id);
+    const didDelete = await onDeletePost(post.id);
     setPendingAction("");
+    if (didDelete) {
+      setIsDeleteConfirming(false);
+      return;
+    }
+    setIsDeleteConfirming(true);
   }
 
   const likeLabel = hasLiked ? "Liked" : "Like";
@@ -330,11 +358,14 @@ function DiscussionCard({
                     <button
                       type="button"
                       disabled={pendingAction === "delete"}
-                      onClick={handleDelete}
+                      onClick={() => {
+                        setIsDeleteConfirming(true);
+                        setIsActionsMenuOpen(false);
+                      }}
                       className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-rose-200 transition hover:bg-rose-400/10 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <FiTrash2 />
-                      {pendingAction === "delete" ? "Deleting..." : "Delete post"}
+                      Delete post
                     </button>
                   </div>
                 ) : null}
@@ -394,11 +425,37 @@ function DiscussionCard({
 
         <div className="mt-5 border-t border-white/10 pt-4">
           <div className="flex flex-wrap items-center gap-2">
-          <StatPill label="likes" value={post.likes} />
-          <StatPill label="comments" value={post.comments.length} />
-          <StatPill label="saves" value={post.saves} />
+            <StatPill label="likes" value={post.likes} />
+            <StatPill label="comments" value={post.comments.length} />
+            <StatPill label="saves" value={post.saves} />
           </div>
         </div>
+
+        {isDeleteConfirming ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-rose-300/15 bg-rose-400/10 px-4 py-3">
+            <div className="text-sm text-rose-100">Delete this post permanently?</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={pendingAction === "delete"}
+                onClick={() => setIsDeleteConfirming(false)}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-neutral-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <FiX />
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={pendingAction === "delete"}
+                onClick={handleDelete}
+                className="inline-flex items-center gap-2 rounded-full bg-rose-200 px-4 py-2 text-sm font-medium text-rose-950 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <FiTrash2 />
+                {pendingAction === "delete" ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
@@ -527,9 +584,9 @@ function DiscussionCard({
       </div>
     </article>
   );
-}
+});
 
-export default function DiscussionsView({
+const DiscussionsView = memo(function DiscussionsView({
   currentUserId,
   focusedPostId,
   likedPostIds,
@@ -541,10 +598,35 @@ export default function DiscussionsView({
   onSavePost,
   onUpdatePost,
 }) {
-  const sortedPosts = [...posts].sort((left, right) => {
-    if (right.likes !== left.likes) return right.likes - left.likes;
-    return right.createdAt - left.createdAt;
-  });
+  const sortedPosts = useMemo(() => {
+    return [...posts].sort((left, right) => {
+      if (right.likes !== left.likes) return right.likes - left.likes;
+      return right.createdAt - left.createdAt;
+    });
+  }, [posts]);
+  const likedPostIdSet = useMemo(() => new Set(likedPostIds), [likedPostIds]);
+  const savedPostIdSet = useMemo(() => new Set(savedPostIds), [savedPostIds]);
+  const postsByAuthor = useMemo(() => {
+    const nextPostsByAuthor = new Map();
+
+    posts.forEach((post) => {
+      const authorKey = getAuthorKey(post);
+      const currentPosts = nextPostsByAuthor.get(authorKey);
+
+      if (currentPosts) {
+        currentPosts.push(post);
+        return;
+      }
+
+      nextPostsByAuthor.set(authorKey, [post]);
+    });
+
+    nextPostsByAuthor.forEach((authorPosts) => {
+      authorPosts.sort((left, right) => right.createdAt - left.createdAt);
+    });
+
+    return nextPostsByAuthor;
+  }, [posts]);
   const [selectedAuthorKey, setSelectedAuthorKey] = useState("");
 
   useEffect(() => {
@@ -562,26 +644,59 @@ export default function DiscussionsView({
     });
   }, [sortedPosts]);
 
-  const selectedAuthorPost =
-    sortedPosts.find((post) => getAuthorKey(post) === selectedAuthorKey) || null;
+  useEffect(() => {
+    if (!selectedAuthorKey) return;
 
-  function handleSelectAuthor(post) {
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setSelectedAuthorKey("");
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedAuthorKey]);
+
+  const selectedAuthorPost = useMemo(() => {
+    return sortedPosts.find((post) => getAuthorKey(post) === selectedAuthorKey) || null;
+  }, [selectedAuthorKey, sortedPosts]);
+  const selectedAuthorPosts = useMemo(() => {
+    if (!selectedAuthorKey) return EMPTY_POSTS;
+    return postsByAuthor.get(selectedAuthorKey) || EMPTY_POSTS;
+  }, [postsByAuthor, selectedAuthorKey]);
+
+  const closeAuthorPanel = useCallback(() => {
+    setSelectedAuthorKey("");
+  }, []);
+
+  const handleSelectAuthor = useCallback((post) => {
     if (!post || post.authorUserId === currentUserId) return;
     const nextKey = getAuthorKey(post);
     setSelectedAuthorKey((currentKey) => (currentKey === nextKey ? "" : nextKey));
-  }
+  }, [currentUserId]);
 
   return (
     <section className="space-y-5">
+      {selectedAuthorPost ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/60 transition-opacity"
+          onClick={closeAuthorPanel}
+          aria-label="Close profile panel backdrop"
+        />
+      ) : null}
+
       {sortedPosts.length ? (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr),300px]">
+        <div className="space-y-4">
           <div className="space-y-4">
             {sortedPosts.map((post, index) => (
               <DiscussionCard
                 currentUserId={currentUserId}
                 key={post.id}
-                hasLiked={likedPostIds.includes(post.id)}
-                hasSaved={savedPostIds.includes(post.id)}
+                hasLiked={likedPostIdSet.has(post.id)}
+                hasSaved={savedPostIdSet.has(post.id)}
                 isFocused={focusedPostId === post.id}
                 isSelectedAuthor={selectedAuthorKey === getAuthorKey(post)}
                 post={post}
@@ -595,25 +710,22 @@ export default function DiscussionsView({
               />
             ))}
           </div>
-
-          <aside className="xl:sticky xl:top-24 xl:self-start">
-            {selectedAuthorPost ? (
-              <AuthorPostsPanel post={selectedAuthorPost} posts={sortedPosts} />
-            ) : (
-              <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-5">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Author details</div>
-                <p className="mt-3 text-sm leading-6 text-neutral-400">
-                  Click another user&apos;s profile in a discussion card to see their name, bio, and recent posts here.
-                </p>
-              </div>
-            )}
-          </aside>
         </div>
       ) : (
         <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-neutral-400">
           No topics posted yet.
         </div>
       )}
+
+      {selectedAuthorPost ? (
+        <AuthorPostsPanel
+          post={selectedAuthorPost}
+          recentPosts={selectedAuthorPosts.slice(0, 6)}
+          onClose={closeAuthorPanel}
+        />
+      ) : null}
     </section>
   );
-}
+});
+
+export default DiscussionsView;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiMenu } from "react-icons/fi";
 import {
   addPost,
@@ -35,6 +35,18 @@ function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function createUuid() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character) => {
+    const randomValue = Math.floor(Math.random() * 16);
+    const nextValue = character === "x" ? randomValue : (randomValue & 0x3) | 0x8;
+    return nextValue.toString(16);
+  });
+}
+
 function getDisplayName(user) {
   const metadataName =
     user?.user_metadata?.username ||
@@ -65,7 +77,7 @@ function createAssistantPlaceholder() {
 
 function createEmptyChatSession() {
   return {
-    id: createId("chat"),
+    id: createUuid(),
     title: "New chat",
     updatedAt: Date.now(),
     messages: [],
@@ -151,6 +163,68 @@ const EMPTY_CHAT_MESSAGES = [];
 
 const DASHBOARD_VIEW_STORAGE_KEY = "learnsmart-dashboard-view";
 const MY_SPACE_TAB_STORAGE_KEY = "learnsmart-my-space-tab";
+const CHAT_SESSIONS_STORAGE_KEY_PREFIX = "learnsmart-chat-sessions";
+
+function isUuid(value) {
+  return typeof value === "string"
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeChatSession(session) {
+  return {
+    id: isUuid(session?.id) ? session.id : createUuid(),
+    title: typeof session?.title === "string" && session.title.trim() ? session.title.trim() : "New chat",
+    updatedAt: normalizeTimestamp(session?.updatedAt || session?.updated_at),
+    messages: Array.isArray(session?.messages) ? session.messages : [],
+  };
+}
+
+function mergeChatSessions(...sessionLists) {
+  const sessionsById = new Map();
+
+  sessionLists.flat().forEach((session) => {
+    const normalizedSession = normalizeChatSession(session);
+    const existingSession = sessionsById.get(normalizedSession.id);
+
+    if (!existingSession || normalizedSession.updatedAt >= existingSession.updatedAt) {
+      sessionsById.set(normalizedSession.id, normalizedSession);
+    }
+  });
+
+  return [...sessionsById.values()].sort((left, right) => right.updatedAt - left.updatedAt);
+}
+
+function getChatSessionsStorageKey(userId) {
+  return `${CHAT_SESSIONS_STORAGE_KEY_PREFIX}:${userId}`;
+}
+
+function loadCachedChatSessions(userId) {
+  if (typeof window === "undefined" || !userId) return [];
+
+  try {
+    const rawValue = window.localStorage.getItem(getChatSessionsStorageKey(userId));
+    if (!rawValue) return [];
+    const parsedValue = JSON.parse(rawValue);
+    if (!Array.isArray(parsedValue)) return [];
+    return parsedValue.map(normalizeChatSession);
+  } catch (error) {
+    console.error("Failed to read cached chats:", error);
+    return [];
+  }
+}
+
+function saveCachedChatSessions(userId, sessions) {
+  if (typeof window === "undefined" || !userId) return;
+
+  try {
+    window.localStorage.setItem(
+      getChatSessionsStorageKey(userId),
+      JSON.stringify(sessions.map(normalizeChatSession))
+    );
+  } catch (error) {
+    console.error("Failed to cache chats:", error);
+  }
+}
 
 export default function Dashboard({ user, onLogout, initialView }) {
   const [activeView, setActiveView] = useState(() => {
@@ -171,7 +245,16 @@ export default function Dashboard({ user, onLogout, initialView }) {
   const [isNotificationsLoading, setIsNotificationsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [mutationFeedback, setMutationFeedback] = useState({
+    isVisible: false,
+    message: "",
+    tone: "loading",
+  });
   const [highlightedPostId, setHighlightedPostId] = useState(null);
+  const mutationFeedbackTimeoutRef = useRef(null);
+  const mutationFeedbackRequestRef = useRef(0);
+  const hasInitializedChatCacheRef = useRef(false);
+  const chatCacheUserIdRef = useRef(null);
   const [mySpaceTab, setMySpaceTab] = useState(() => {
     const storedTab =
       typeof window !== "undefined"
@@ -231,19 +314,46 @@ useEffect(() => {
 useEffect(() => {
   if (!user?.id) return;
   let cancelled = false;
+
+  const cachedSessions = loadCachedChatSessions(user.id);
+  if (cachedSessions.length) {
+    setChatSessions(cachedSessions);
+    setActiveChatId((currentId) => currentId || cachedSessions[0].id);
+  }
+
   async function loadChats() {
-    const sessions = await getChatSessions(user.id);
-    if (cancelled) return;
-    setChatSessions(sessions.map((s) => ({
-      id: s.id,
-      title: s.title,
-      updatedAt: new Date(s.updated_at).getTime(),
-      messages: s.messages || [],
-    })));
+    try {
+      const sessions = await getChatSessions(user.id);
+      if (cancelled) return;
+      const mergedSessions = mergeChatSessions(
+        cachedSessions,
+        sessions.map((session) => ({
+          id: session.id,
+          title: session.title,
+          updatedAt: session.updated_at,
+          messages: session.messages,
+        }))
+      );
+      setChatSessions(mergedSessions);
+      setActiveChatId((currentId) => currentId || mergedSessions[0]?.id || null);
+    } catch (err) {
+      console.error("Failed to load chats:", err);
+    }
   }
   loadChats();
   return () => { cancelled = true; };
 }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    if (chatCacheUserIdRef.current !== user.id) {
+      chatCacheUserIdRef.current = user.id;
+      hasInitializedChatCacheRef.current = false;
+    }
+    if (!hasInitializedChatCacheRef.current && !chatSessions.length) return;
+    hasInitializedChatCacheRef.current = true;
+    saveCachedChatSessions(user.id, chatSessions);
+  }, [chatSessions, user?.id]);
 
   useEffect(() => {
     if (!initialView) return;
@@ -265,6 +375,14 @@ useEffect(() => {
       setIsNotificationsLoading(false);
     }, 450);
     return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (mutationFeedbackTimeoutRef.current) {
+        window.clearTimeout(mutationFeedbackTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -342,33 +460,46 @@ useEffect(() => {
     );
   }, [profile.bio, profile.displayName, profile.imageAlt, profile.imageSrc, user]);
 
-  const activeChat = chatSessions.find((chat) => chat.id === activeChatId) || null;
+  const activeChat = useMemo(
+    () => chatSessions.find((chat) => chat.id === activeChatId) || null,
+    [activeChatId, chatSessions]
+  );
   const currentMessages = activeChat?.messages?.length ? activeChat.messages : EMPTY_CHAT_MESSAGES;
-  const recentChats = [...chatSessions].sort((left, right) => right.updatedAt - left.updatedAt);
-  const displayName = profile.displayName?.trim() || "<USER_NAME>";
+  const recentChats = useMemo(() => mergeChatSessions(chatSessions), [chatSessions]);
+  const displayName = useMemo(
+    () => profile.displayName?.trim() || "<USER_NAME>",
+    [profile.displayName]
+  );
   const isChatView = activeView === DASHBOARD_VIEWS.NEW_CHAT;
   const isEmptyDraftChat = isChatView && (!activeChat || activeChat.messages.length === 0);
-  const unreadNotificationCount = notifications.filter((n) => n.unread).length;
+  const unreadNotificationCount = useMemo(
+    () => notifications.filter((notification) => notification.unread).length,
+    [notifications]
+  );
+  const myPosts = useMemo(
+    () => discussionPosts.filter((post) => post.authorUserId === user?.id),
+    [discussionPosts, user?.id]
+  );
 
-  function closeSidebar() {
+  const closeSidebar = useCallback(() => {
     if (isLoggingOut) return;
     setIsSidebarOpen(false);
-  }
+  }, [isLoggingOut]);
 
-  function openNotifications() {
+  const openNotifications = useCallback(() => {
     if (isLoggingOut) return;
     setIsNotificationTrayOpen(true);
     setNotifications((currentNotifications) =>
       currentNotifications.map((n) => ({ ...n, unread: false }))
     );
-  }
+  }, [isLoggingOut]);
 
-  function closeNotifications() {
+  const closeNotifications = useCallback(() => {
     if (isLoggingOut) return;
     setIsNotificationTrayOpen(false);
-  }
+  }, [isLoggingOut]);
 
-  function handleNotificationSelect(notification) {
+  const handleNotificationSelect = useCallback((notification) => {
     if (isLoggingOut) return;
     setIsNotificationTrayOpen(false);
     setNotifications((currentNotifications) =>
@@ -379,16 +510,16 @@ useEffect(() => {
     if (!notification.postId) return;
     setActiveView(DASHBOARD_VIEWS.DISCUSSIONS);
     setHighlightedPostId(notification.postId);
-  }
+  }, [isLoggingOut]);
 
-  function openView(viewId) {
+  const openView = useCallback((viewId) => {
     if (isLoggingOut) return;
     setHighlightedPostId(null);
     setActiveView(viewId);
     closeSidebar();
-  }
+  }, [closeSidebar, isLoggingOut]);
 
-  function handleNewChat() {
+  const handleNewChat = useCallback(() => {
     if (isLoggingOut) return;
     setHighlightedPostId(null);
     if (activeChat && activeChat.messages.length === 0) {
@@ -403,24 +534,71 @@ useEffect(() => {
     setChatInput("");
     setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
     closeSidebar();
-  }
+  }, [activeChat, closeSidebar, isLoggingOut]);
 
-  async function persistChatSession(session) {
+  const beginMutationFeedback = useCallback((loadingMessage) => {
+    const requestId = mutationFeedbackRequestRef.current + 1;
+    mutationFeedbackRequestRef.current = requestId;
+
+    if (mutationFeedbackTimeoutRef.current) {
+      window.clearTimeout(mutationFeedbackTimeoutRef.current);
+      mutationFeedbackTimeoutRef.current = null;
+    }
+
+    setMutationFeedback({
+      isVisible: true,
+      message: loadingMessage,
+      tone: "loading",
+    });
+
+    function scheduleHide(delay = 1100) {
+      mutationFeedbackTimeoutRef.current = window.setTimeout(() => {
+        if (mutationFeedbackRequestRef.current !== requestId) return;
+        setMutationFeedback((currentFeedback) => ({ ...currentFeedback, isVisible: false }));
+        mutationFeedbackTimeoutRef.current = null;
+      }, delay);
+    }
+
+    return {
+      succeed(successMessage) {
+        if (mutationFeedbackRequestRef.current !== requestId) return;
+        setMutationFeedback({
+          isVisible: true,
+          message: successMessage,
+          tone: "success",
+        });
+        scheduleHide();
+      },
+      fail(errorMessage = "Could not save changes") {
+        if (mutationFeedbackRequestRef.current !== requestId) return;
+        setMutationFeedback({
+          isVisible: true,
+          message: errorMessage,
+          tone: "error",
+        });
+        scheduleHide(1500);
+      },
+    };
+  }, []);
+
+  const persistChatSession = useCallback(async (session) => {
     if (!user?.id) return;
 
     try {
-      await saveChatSession(user.id, session);
+      const savedSession = await saveChatSession(user.id, session);
+      return savedSession;
     } catch (err) {
       console.error("Save chat error:", err);
+      throw err;
     }
-  }
+  }, [user?.id]);
 
-  function handleChatSubmit() {
+  const handleChatSubmit = useCallback(() => {
     if (isLoggingOut) return;
     const trimmedInput = chatInput.trim();
     if (!trimmedInput) return;
 
-    const targetId = activeChatId || createId("chat");
+    const targetId = activeChatId || createUuid();
     const userMessage = {
       id: createId("message"),
       role: "user",
@@ -452,12 +630,12 @@ useEffect(() => {
     setChatInput("");
 
     if (nextSessionToPersist) {
-      persistChatSession(nextSessionToPersist);
+      persistChatSession(nextSessionToPersist).catch(() => {});
     }
-}
+  }, [activeChat, activeChatId, chatInput, isLoggingOut, persistChatSession]);
 
   // Called by ChatModule as tokens stream in
-  function handleStreamingUpdate(messageId, content, streaming) {
+  const handleStreamingUpdate = useCallback((messageId, content, streaming) => {
     let nextSessionToPersist = null;
     setChatSessions((currentSessions) =>
       currentSessions.map((session) => {
@@ -480,20 +658,21 @@ useEffect(() => {
     );
 
     if (!streaming && nextSessionToPersist) {
-      persistChatSession(nextSessionToPersist);
+      persistChatSession(nextSessionToPersist).catch(() => {});
     }
-  }
+  }, [persistChatSession]);
 
-  function handleRecentChatSelect(chatId) {
+  const handleRecentChatSelect = useCallback((chatId) => {
     if (isLoggingOut) return;
     setHighlightedPostId(null);
     setActiveChatId(chatId);
     setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
     closeSidebar();
-  }
+  }, [closeSidebar, isLoggingOut]);
 
-  async function handleDeleteChat(chatId) {
+  const handleDeleteChat = useCallback(async (chatId) => {
     if (isLoggingOut) return;
+    const feedback = beginMutationFeedback("Removing chat...");
 
     const nextActiveChatId = activeChatId === chatId ? null : activeChatId;
     setChatSessions((currentSessions) => currentSessions.filter((session) => session.id !== chatId));
@@ -504,119 +683,149 @@ useEffect(() => {
       setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
     }
 
-    if (!user?.id) return;
+    if (!user?.id) {
+      feedback.succeed("Chat removed");
+      return;
+    }
 
     try {
       await deleteChatSession(user.id, chatId);
+      feedback.succeed("Chat removed");
     } catch (err) {
       console.error("Delete chat failed:", err);
+      feedback.fail("Could not remove chat");
     }
-  }
+  }, [activeChatId, beginMutationFeedback, isLoggingOut, user?.id]);
 
-  async function handleCreatePost(content) {
-  if (isLoggingOut) return null;
-  await waitForUiFeedback();
-  const nextPost = createDiscussionPost({
-    authorBio: profile.bio,
-    authorImageAlt: profile.imageAlt,
-    authorImageSrc: profile.imageSrc,
-    authorName: displayName,
-    authorUserId: user?.id,
-    content,
-  });
-  setDiscussionPosts((currentPosts) => [nextPost, ...currentPosts]);
-  // Persist to Supabase
-  try {
-    const saved = await addPost(user?.id, displayName, content);
-    const inserted = saved?.[0];
-    if (inserted) {
-      setDiscussionPosts((currentPosts) =>
-        currentPosts.map((p) => p.id === nextPost.id ? { ...nextPost, id: inserted.id } : p)
-      );
+  const handleCreatePost = useCallback(async (content) => {
+    if (isLoggingOut) return null;
+    const feedback = beginMutationFeedback("Posting topic...");
+    await waitForUiFeedback();
+    const nextPost = createDiscussionPost({
+      authorBio: profile.bio,
+      authorImageAlt: profile.imageAlt,
+      authorImageSrc: profile.imageSrc,
+      authorName: displayName,
+      authorUserId: user?.id,
+      content,
+    });
+    setDiscussionPosts((currentPosts) => [nextPost, ...currentPosts]);
+
+    try {
+      const saved = await addPost(user?.id, displayName, content);
+      const inserted = saved?.[0];
+      if (inserted) {
+        setDiscussionPosts((currentPosts) =>
+          currentPosts.map((post) => (post.id === nextPost.id ? { ...nextPost, id: inserted.id } : post))
+        );
+      }
+      feedback.succeed("Post shared");
+    } catch (err) {
+      console.error("Failed to save post:", err);
+      feedback.fail("Could not post topic");
     }
-  } catch (err) {
-    console.error("Failed to save post:", err);
-  }
-  return nextPost;
-}
 
-  async function handleLikePost(postId) {
-  if (isLoggingOut) return;
-  if (likedPostIds.includes(postId)) return;
-  setLikedPostIds((ids) => [...ids, postId]);
-  setDiscussionPosts((currentPosts) =>
-    currentPosts.map((post) =>
-      post.id === postId ? { ...post, likes: post.likes + 1 } : post
-    )
-  );
-  try {
-    await likePost(user.id, postId);
-  } catch (err) {
-    console.error("Like failed:", err);
-  }
-  }
-  async function handleSavePost(postId) {
-  if (isLoggingOut) return false;
-  if (savedPostIds.includes(postId)) return false;
-  await waitForUiFeedback();
-  setSavedPostIds((ids) => [...ids, postId]);
-  setDiscussionPosts((currentPosts) =>
-    currentPosts.map((post) =>
-      post.id === postId ? { ...post, saves: post.saves + 1 } : post
-    )
-  );
-  try {
-    await savePostForUser(user.id, postId);
-  } catch (err) {
-    console.error("Save failed:", err);
-  }
-  return true;
-}
+    return nextPost;
+  }, [beginMutationFeedback, displayName, isLoggingOut, profile.bio, profile.imageAlt, profile.imageSrc, user?.id]);
 
-  async function handleCommentPost(postId, content) {
+  const handleLikePost = useCallback(async (postId) => {
+    if (isLoggingOut) return;
+    if (likedPostIds.includes(postId)) return;
+    const feedback = beginMutationFeedback("Saving like...");
+
+    setLikedPostIds((ids) => [...ids, postId]);
+    setDiscussionPosts((currentPosts) =>
+      currentPosts.map((post) =>
+        post.id === postId ? { ...post, likes: post.likes + 1 } : post
+      )
+    );
+
+    try {
+      await likePost(user.id, postId);
+      feedback.succeed("Post liked");
+    } catch (err) {
+      console.error("Like failed:", err);
+      feedback.fail("Could not like post");
+    }
+  }, [beginMutationFeedback, isLoggingOut, likedPostIds, user?.id]);
+
+  const handleSavePost = useCallback(async (postId) => {
+    if (isLoggingOut) return false;
+    if (savedPostIds.includes(postId)) return false;
+    const feedback = beginMutationFeedback("Saving post...");
+
+    await waitForUiFeedback();
+    setSavedPostIds((ids) => [...ids, postId]);
+    setDiscussionPosts((currentPosts) =>
+      currentPosts.map((post) =>
+        post.id === postId ? { ...post, saves: post.saves + 1 } : post
+      )
+    );
+
+    try {
+      await savePostForUser(user.id, postId);
+      feedback.succeed("Post saved");
+    } catch (err) {
+      console.error("Save failed:", err);
+      feedback.fail("Could not save post");
+    }
+
+    return true;
+  }, [beginMutationFeedback, isLoggingOut, savedPostIds, user?.id]);
+
+  const handleCommentPost = useCallback(async (postId, content) => {
     if (isLoggingOut) return false;
     const trimmedContent = content.trim();
     if (!trimmedContent) return false;
+    const feedback = beginMutationFeedback("Posting comment...");
     await waitForUiFeedback();
     const nextComment = createComment({
       authorName: displayName,
       authorUserId: user?.id,
       content: trimmedContent,
     });
-try {
-  const post = discussionPosts.find((p) => p.id === postId);
-  const updatedComments = [
-    ...(post?.comments || []),
-    {
-      id: nextComment.id,
-      text: trimmedContent,
-      user: displayName,
-      user_id: user?.id || null,
-      createdAt: nextComment.createdAt,
-    },
-  ];
-  await supabaseUpdatePost(postId, { comments: updatedComments });
-  // Only update local state after Supabase confirms
-  setDiscussionPosts((currentPosts) =>
-    currentPosts.map((p) =>
-      p.id === postId
-        ? { ...p, comments: [...p.comments, nextComment] }
-        : p
-    )
-  );
-} catch (err) {
-  console.error("Comment save failed:", err);
-  return false;
-}
+    try {
+      const post = discussionPosts.find((candidatePost) => candidatePost.id === postId);
+      const updatedComments = [
+        ...(post?.comments || []),
+        {
+          id: nextComment.id,
+          text: trimmedContent,
+          user: displayName,
+          user_id: user?.id || null,
+          createdAt: nextComment.createdAt,
+        },
+      ];
 
+      await supabaseUpdatePost(postId, { comments: updatedComments });
+      setDiscussionPosts((currentPosts) =>
+        currentPosts.map((candidatePost) =>
+          candidatePost.id === postId
+            ? { ...candidatePost, comments: [...candidatePost.comments, nextComment] }
+            : candidatePost
+        )
+      );
+    } catch (err) {
+      console.error("Comment save failed:", err);
+      feedback.fail("Could not post comment");
+      return false;
+    }
+
+    feedback.succeed("Comment posted");
     return true;
-  }
+  }, [beginMutationFeedback, discussionPosts, displayName, isLoggingOut, user?.id]);
 
-  async function handleUpdatePost(postId, content) {
+  const handleUpdatePost = useCallback(async (postId, content) => {
     if (isLoggingOut) return false;
 
     const trimmedContent = content.trim();
     if (!trimmedContent) return false;
+    const post = discussionPosts.find((candidatePost) => candidatePost.id === postId);
+
+    if (!post || post.authorUserId !== user?.id) {
+      return false;
+    }
+    const feedback = beginMutationFeedback("Saving changes...");
 
     try {
       await supabaseUpdatePost(postId, { content: trimmedContent });
@@ -625,18 +834,26 @@ try {
           post.id === postId ? { ...post, content: trimmedContent } : post
         )
       );
+      feedback.succeed("Post updated");
       return true;
     } catch (err) {
       console.error("Update post failed:", err);
+      feedback.fail("Could not update post");
       return false;
     }
-  }
+  }, [beginMutationFeedback, discussionPosts, isLoggingOut, user?.id]);
 
-  async function handleDeletePost(postId) {
+  const handleDeletePost = useCallback(async (postId) => {
     if (isLoggingOut) return false;
+    const post = discussionPosts.find((candidatePost) => candidatePost.id === postId);
+
+    if (!post || post.authorUserId !== user?.id) {
+      return false;
+    }
+    const feedback = beginMutationFeedback("Deleting post...");
 
     try {
-      await deletePost(postId);
+      await deletePost(user.id, postId);
       setDiscussionPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId));
       setLikedPostIds((currentIds) => currentIds.filter((id) => id !== postId));
       setSavedPostIds((currentIds) => currentIds.filter((id) => id !== postId));
@@ -646,49 +863,53 @@ try {
       if (highlightedPostId === postId) {
         setHighlightedPostId(null);
       }
+      feedback.succeed("Post deleted");
       return true;
     } catch (err) {
       console.error("Delete post failed:", err);
+      feedback.fail("Could not delete post");
       return false;
     }
-  }
+  }, [beginMutationFeedback, discussionPosts, highlightedPostId, isLoggingOut, user?.id]);
+  const handleProfileSave = useCallback(async (nextProfile) => {
+    if (isLoggingOut) return;
+    const feedback = beginMutationFeedback("Saving profile...");
+    const trimmedDisplayName = nextProfile.displayName?.trim();
 
-  
-  async function handleProfileSave(nextProfile) {
-  if (isLoggingOut) return;
-  const trimmedDisplayName = nextProfile.displayName?.trim();
-  if (user?.id) {
-  console.log("Saving profile:", { 
-    userId: user.id, 
-    displayName: trimmedDisplayName, 
-    bio: nextProfile.bio,
-    avatarUrl: nextProfile.imageSrc,
-  });
-  await updateAccountProfile(user.id, {
-    displayName: trimmedDisplayName,
-    bio: nextProfile.bio ?? "",
-    avatarUrl: nextProfile.imageSrc,
-  });
-}
-  await waitForUiFeedback();
-  setProfile((currentProfile) => ({
-    ...currentProfile,
-    ...nextProfile,
-    bio: nextProfile.bio || "",
-    displayName: trimmedDisplayName || currentProfile.displayName,
-    imageAlt: nextProfile.imageAlt || currentProfile.imageAlt,
-    imageSrc: nextProfile.imageSrc !== undefined ? nextProfile.imageSrc : currentProfile.imageSrc,
-  }));
-}
+    if (user?.id) {
+      console.log("Saving profile:", {
+        userId: user.id,
+        displayName: trimmedDisplayName,
+        bio: nextProfile.bio,
+        avatarUrl: nextProfile.imageSrc,
+      });
+      await updateAccountProfile(user.id, {
+        displayName: trimmedDisplayName,
+        bio: nextProfile.bio ?? "",
+        avatarUrl: nextProfile.imageSrc,
+      });
+    }
 
-async function handleLogoutRequest() {
-  if (isLoggingOut) return;
-  setIsLoggingOut(true);
-  closeSidebar();
-  closeNotifications();
-  await waitForUiFeedback(850);
-  await onLogout();
-}
+    await waitForUiFeedback();
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      ...nextProfile,
+      bio: nextProfile.bio || "",
+      displayName: trimmedDisplayName || currentProfile.displayName,
+      imageAlt: nextProfile.imageAlt || currentProfile.imageAlt,
+      imageSrc: nextProfile.imageSrc !== undefined ? nextProfile.imageSrc : currentProfile.imageSrc,
+    }));
+    feedback.succeed("Profile updated");
+  }, [beginMutationFeedback, isLoggingOut, user?.id]);
+
+  const handleLogoutRequest = useCallback(async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    closeSidebar();
+    closeNotifications();
+    await waitForUiFeedback(850);
+    await onLogout();
+  }, [closeNotifications, closeSidebar, isLoggingOut, onLogout]);
 
   function renderView() {
     if (activeView === DASHBOARD_VIEWS.NEW_CHAT) {
@@ -721,21 +942,21 @@ async function handleLogoutRequest() {
       );
     }
 
-  const myPosts = discussionPosts.filter((p) => p.authorUserId === user?.id);
-return (
-  <MySpaceView
-    activeTab={mySpaceTab}
-    displayName={displayName}
-    likedPostIds={likedPostIds}
-    posts={myPosts}
-    allPosts={discussionPosts}
-    profile={profile}
-    savedPostIds={savedPostIds}
-    userEmail={user?.email || "<USER_EMAIL>"}
-    onCreatePost={handleCreatePost}
-    onTabChange={setMySpaceTab}
-  />
-);
+    return (
+      <MySpaceView
+        activeTab={mySpaceTab}
+        displayName={displayName}
+        likedPostIds={likedPostIds}
+        posts={myPosts}
+        allPosts={discussionPosts}
+        profile={profile}
+        savedPostIds={savedPostIds}
+        userEmail={user?.email || "<USER_EMAIL>"}
+        onCreatePost={handleCreatePost}
+        onDeletePost={handleDeletePost}
+        onTabChange={setMySpaceTab}
+      />
+    );
   }
 
   return (
@@ -792,6 +1013,36 @@ return (
       >
         <FiMenu />
       </button>
+
+      <div
+        className={[
+          "fixed right-4 top-4 z-[70] transition duration-200 sm:right-6 sm:top-5",
+          mutationFeedback.isVisible ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0 pointer-events-none",
+        ].join(" ")}
+      >
+        <div
+          className={[
+            "flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl",
+            mutationFeedback.tone === "success"
+              ? "border-emerald-300/15 bg-emerald-300/10 text-emerald-100"
+              : mutationFeedback.tone === "error"
+                ? "border-rose-300/15 bg-rose-400/10 text-rose-100"
+                : "border-white/10 bg-neutral-900/92 text-white",
+          ].join(" ")}
+        >
+          {mutationFeedback.tone === "loading" ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+          ) : (
+            <div
+              className={[
+                "h-2.5 w-2.5 rounded-full",
+                mutationFeedback.tone === "success" ? "bg-emerald-200" : "bg-rose-200",
+              ].join(" ")}
+            />
+          )}
+          <div className="text-sm">{mutationFeedback.message}</div>
+        </div>
+      </div>
 
       <div className="relative flex min-h-screen flex-col">
         <DashboardHeader

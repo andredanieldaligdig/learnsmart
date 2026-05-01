@@ -271,13 +271,29 @@ export async function getPostsByUser(user_id) {
   return data;
 }
 
-export async function deletePost(id) {
-  const { error } = await supabase
+export async function deletePost(userId, postId) {
+  if (!userId) throw new Error("A valid user id is required.");
+
+  const { error: savedPostsError } = await supabase
+    .from('saved_posts')
+    .delete()
+    .eq('post_id', postId);
+
+  if (savedPostsError) throw savedPostsError;
+
+  const { error: postLikesError } = await supabase
+    .from('post_likes')
+    .delete()
+    .eq('post_id', postId);
+
+  if (postLikesError) throw postLikesError;
+
+  const { error: postError } = await supabase
     .from('posts')
     .delete()
-    .eq('id', id);
+    .match({ id: postId, user_id: userId });
 
-  if (error) throw error;
+  if (postError) throw postError;
 }
 
 
@@ -444,16 +460,26 @@ export async function getMessagesForUser(user_id) {
 // ======================================================
 
 export async function saveChatSession(userId, session) {
-  const { error } = await supabase
+  const payload = {
+    id: session.id,
+    user_id: userId,
+    title: session.title,
+    messages: Array.isArray(session.messages) ? session.messages : [],
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
     .from('chat_sessions')
-    .upsert([{
-      id: session.id,
-      user_id: userId,
-      title: session.title,
-      messages: session.messages,
-      updated_at: new Date().toISOString(),
-    }]);
-  if (error) console.error("Save chat error:", error);
+    .upsert([payload])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Save chat error:", error, payload);
+    throw error;
+  }
+
+  return data;
 }
 
 export async function getChatSessions(userId) {
@@ -462,8 +488,13 @@ export async function getChatSessions(userId) {
     .select('*')
     .eq('user_id', userId)
     .order('updated_at', { ascending: false });
-  if (error) return [];
-  return data;
+
+  if (error) {
+    console.error("Load chat sessions error:", error);
+    throw error;
+  }
+
+  return data || [];
 }
 
 export async function deleteChatSession(userId, sessionId) {

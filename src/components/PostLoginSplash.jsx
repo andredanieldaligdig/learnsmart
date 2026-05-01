@@ -45,12 +45,12 @@ export default function PostLoginSplash() {
 
           {/* Eyebrow */}
           <p
-            className="mb-4 text-[0.58rem] uppercase tracking-[0.4em] text-white/20 transition-all duration-500"
+            className="mb-4 text-[0.58rem] uppercase tracking-[0.4em] text-white/20 transition-all duration-700"
             style={{
               fontFamily: "'DM Sans', sans-serif",
               opacity: mounted ? 1 : 0,
               transform: mounted ? "translateY(0)" : "translateY(8px)",
-              transitionDelay: "60ms",
+              transitionDelay: "90ms",
             }}
           >
             LearnSmart
@@ -58,7 +58,7 @@ export default function PostLoginSplash() {
 
           {/* Wordmark */}
           <h1
-            className="text-white transition-all duration-700"
+            className="text-white transition-all duration-[1100ms]"
             style={{
               fontFamily: "'Playfair Display', serif",
               fontSize: "clamp(2.8rem, 8vw, 4rem)",
@@ -67,7 +67,7 @@ export default function PostLoginSplash() {
               lineHeight: 1,
               opacity: mounted ? 1 : 0,
               transform: mounted ? "translateY(0)" : "translateY(14px)",
-              transitionDelay: "120ms",
+              transitionDelay: "160ms",
               transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)",
             }}
           >
@@ -80,17 +80,17 @@ export default function PostLoginSplash() {
             style={{
               height: "1px",
               background: "rgba(255,255,255,0.12)",
-              animation: mounted ? "lineGrow 0.6s 0.4s cubic-bezier(0.16,1,0.3,1) both" : "none",
+              animation: mounted ? "lineGrow 0.8s 0.58s cubic-bezier(0.16,1,0.3,1) both" : "none",
             }}
           />
 
           {/* Tagline */}
           <p
-            className="mt-5 text-sm font-light text-white/35 transition-all duration-700"
+            className="mt-5 text-sm font-light text-white/35 transition-all duration-[1100ms]"
             style={{
               fontFamily: "'DM Sans', sans-serif",
               opacity: mounted ? 1 : 0,
-              transitionDelay: "380ms",
+              transitionDelay: "640ms",
             }}
           >
             Your study session is ready
@@ -102,7 +102,7 @@ export default function PostLoginSplash() {
           <div
             className="h-full origin-left bg-white/25"
             style={{
-              animation: mounted ? "barFill 2s 0.3s cubic-bezier(0.4,0,0.2,1) both" : "none",
+              animation: mounted ? "barFill 2.9s 0.3s cubic-bezier(0.4,0,0.2,1) both" : "none",
             }}
           />
         </div>

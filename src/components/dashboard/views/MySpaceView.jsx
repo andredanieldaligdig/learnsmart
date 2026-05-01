@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FiImage, FiSend } from "react-icons/fi";
+import { FiCheck, FiImage, FiSend, FiTrash2, FiX } from "react-icons/fi";
 import ProfileAvatar from "../ProfileAvatar.jsx";
 import { MY_SPACE_TABS } from "../dashboardConfig.js";
 
@@ -36,7 +36,19 @@ function CollectionPanel({ activeTab, likedPosts, savedPosts }) {
   );
 }
 
-function PostPreviewCard({ post }) {
+function PostPreviewCard({ post, onDeletePost }) {
+  const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleDeleteClick() {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    const didDelete = await onDeletePost?.(post.id);
+    setIsDeleting(false);
+    if (didDelete) return;
+    setIsDeleteConfirming(true);
+  }
+
   return (
     <article className="rounded-[26px] border border-white/10 bg-black/20 p-4">
       <div className="flex items-start gap-3">
@@ -49,7 +61,40 @@ function PostPreviewCard({ post }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-sm font-medium text-white">{post.authorName}</div>
-            <div className="text-xs text-neutral-500">{post.likes} likes - {post.saves} saves</div>
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-neutral-500">{post.likes} likes - {post.saves} saves</div>
+              {isDeleteConfirming ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={() => setIsDeleteConfirming(false)}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-neutral-300 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <FiX className="text-xs" />
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={handleDeleteClick}
+                    className="inline-flex items-center gap-1 rounded-full bg-rose-200 px-3 py-1 text-xs font-medium text-rose-950 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <FiCheck className="text-xs" />
+                    {isDeleting ? "Deleting..." : "Confirm"}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteConfirming(true)}
+                  className="inline-flex items-center gap-1 rounded-full border border-rose-300/20 bg-rose-400/10 px-3 py-1 text-xs text-rose-100 transition hover:bg-rose-400/18"
+                >
+                  <FiTrash2 className="text-xs" />
+                  Delete
+                </button>
+              )}
+            </div>
           </div>
           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-300">{post.content}</p>
         </div>
@@ -68,6 +113,7 @@ export default function MySpaceView({
   savedPostIds,
   userEmail,
   onCreatePost,
+  onDeletePost,
   onTabChange,
 }) {
   const [postDraft, setPostDraft] = useState("");
@@ -212,7 +258,13 @@ export default function MySpaceView({
           <div className="text-xs uppercase tracking-[0.24em] text-neutral-500">Recent posts</div>
           <div className="mt-4 space-y-3">
             {posts.length ? (
-              posts.slice(0, 3).map((post) => <PostPreviewCard key={post.id} post={post} />)
+              posts.slice(0, 3).map((post) => (
+                <PostPreviewCard
+                  key={post.id}
+                  post={post}
+                  onDeletePost={onDeletePost}
+                />
+              ))
             ) : (
               <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-5 text-sm text-neutral-400">
                 No posts yet.

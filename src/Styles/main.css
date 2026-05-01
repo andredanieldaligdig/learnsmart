@@ -146,4 +146,21 @@
   animation: assistant-wave-drop 900ms cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
 }
 
+.discussion-author-panel {
+  animation: assistant-bubble-rise 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  contain: layout paint;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+
+.discussion-author-panel-content {
+  max-height: min(70vh, 42rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.discussion-author-post-card {
+  transform: translateZ(0);
+}
+
 

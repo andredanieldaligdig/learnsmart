@@ -21,7 +21,7 @@ function DashboardGate({ user, onLogout, initialView }) {
 
   useEffect(() => {
     if (!shouldShowSplash) return;
-    const t = setTimeout(() => setShowSplash(false), 1200);
+    const t = setTimeout(() => setShowSplash(false), 1850);
     return () => clearTimeout(t);
   }, [shouldShowSplash]);
 
