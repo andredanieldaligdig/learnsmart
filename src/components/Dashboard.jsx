@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { FiMenu } from "react-icons/fi";
-import { getAccountProfile } from "../../supabase.js";
+import { getAccountProfile, updateAccountProfile } from "../../supabase.js";
 import DashboardHeader from "./dashboard/DashboardHeader.jsx";
 import NotificationTray from "./dashboard/NotificationTray.jsx";
 import DashboardSidebar from "./dashboard/DashboardSidebar.jsx";
 import {
   DASHBOARD_VIEWS,
   MY_SPACE_TABS,
-  VIEW_META,
   normalizeInitialView,
 } from "./dashboard/dashboardConfig.js";
 import DiscussionsView from "./dashboard/views/DiscussionsView.jsx";
@@ -59,27 +58,39 @@ function createEmptyChatSession() {
   };
 }
 
-function createDiscussionPost({ authorImageAlt, authorImageSrc, authorName, content }) {
+function createDiscussionPost({ authorBio, authorImageAlt, authorImageSrc, authorName, authorUserId, content }) {
   const trimmedContent = content.trim();
 
   return {
     id: createId("post"),
+    authorBio: authorBio?.trim() || "",
     authorImageAlt,
     authorImageSrc,
     authorName,
+    authorUserId: authorUserId || null,
     content: trimmedContent,
     createdAt: Date.now(),
     likes: 0,
-    comments: 0,
+    comments: [],
     saves: 0,
   };
 }
 
-function createNotification({ detail, title }) {
+function createComment({ authorName, content }) {
+  return {
+    id: createId("comment"),
+    authorName,
+    content: content.trim(),
+    createdAt: Date.now(),
+  };
+}
+
+function createNotification({ detail, postId, title }) {
   return {
     id: createId("notification"),
     title,
     detail,
+    postId,
     timestamp: "Just now",
     unread: true,
   };
@@ -112,9 +123,9 @@ export default function Dashboard({ user, onLogout, initialView }) {
   const [discussionPosts, setDiscussionPosts] = useState([]);
   const [likedPostIds, setLikedPostIds] = useState([]);
   const [savedPostIds, setSavedPostIds] = useState([]);
-  const [commentedPostIds, setCommentedPostIds] = useState([]);
   const [isNotificationTrayOpen, setIsNotificationTrayOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [highlightedPostId, setHighlightedPostId] = useState(null);
   const [mySpaceTab, setMySpaceTab] = useState(() => {
     const storedTab =
       typeof window !== "undefined"
@@ -144,6 +155,16 @@ export default function Dashboard({ user, onLogout, initialView }) {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(MY_SPACE_TAB_STORAGE_KEY, mySpaceTab);
   }, [mySpaceTab]);
+
+  useEffect(() => {
+    if (!highlightedPostId) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setHighlightedPostId((currentPostId) => (currentPostId === highlightedPostId ? null : currentPostId));
+    }, 2200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [highlightedPostId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -193,10 +214,27 @@ export default function Dashboard({ user, onLogout, initialView }) {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    setDiscussionPosts((currentPosts) =>
+      currentPosts.map((post) =>
+        post.authorUserId === user.id
+          ? {
+              ...post,
+              authorBio: profile.bio?.trim() || "",
+              authorImageAlt: profile.imageAlt,
+              authorImageSrc: profile.imageSrc,
+              authorName: profile.displayName?.trim() || getDisplayName(user),
+            }
+          : post,
+      ),
+    );
+  }, [profile.bio, profile.displayName, profile.imageAlt, profile.imageSrc, user]);
+
   const activeChat = chatSessions.find((chat) => chat.id === activeChatId) || null;
   const currentMessages = activeChat?.messages?.length ? activeChat.messages : EMPTY_CHAT_MESSAGES;
   const recentChats = [...chatSessions].sort((left, right) => right.updatedAt - left.updatedAt);
-  const activeMeta = VIEW_META[activeView] || VIEW_META[DASHBOARD_VIEWS.NEW_CHAT];
   const displayName = profile.displayName?.trim() || "<USER_NAME>";
   const isChatView = activeView === DASHBOARD_VIEWS.NEW_CHAT;
   const isEmptyDraftChat = isChatView && (!activeChat || activeChat.messages.length === 0);
@@ -220,12 +258,34 @@ export default function Dashboard({ user, onLogout, initialView }) {
     setIsNotificationTrayOpen(false);
   }
 
+  function handleNotificationSelect(notification) {
+    setIsNotificationTrayOpen(false);
+    setNotifications((currentNotifications) =>
+      currentNotifications.map((currentNotification) =>
+        currentNotification.id === notification.id
+          ? {
+              ...currentNotification,
+              unread: false,
+            }
+          : currentNotification,
+      ),
+    );
+
+    if (!notification.postId) return;
+
+    setActiveView(DASHBOARD_VIEWS.DISCUSSIONS);
+    setHighlightedPostId(notification.postId);
+  }
+
   function openView(viewId) {
+    setHighlightedPostId(null);
     setActiveView(viewId);
     closeSidebar();
   }
 
   function handleNewChat() {
+    setHighlightedPostId(null);
+
     if (activeChat && activeChat.messages.length === 0) {
       setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
       setChatInput("");
@@ -278,6 +338,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
   }
 
   function handleRecentChatSelect(chatId) {
+    setHighlightedPostId(null);
     setActiveChatId(chatId);
     setActiveView(DASHBOARD_VIEWS.NEW_CHAT);
     closeSidebar();
@@ -287,9 +348,11 @@ export default function Dashboard({ user, onLogout, initialView }) {
     await waitForUiFeedback();
 
     const nextPost = createDiscussionPost({
+      authorBio: profile.bio,
       authorImageAlt: profile.imageAlt,
       authorImageSrc: profile.imageSrc,
       authorName: displayName,
+      authorUserId: user?.id,
       content,
     });
 
@@ -315,6 +378,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
       createNotification({
         title: "New like on your post",
         detail: `${displayName} liked one of your discussion posts.`,
+        postId,
       }),
       ...currentNotifications,
     ]);
@@ -339,17 +403,23 @@ export default function Dashboard({ user, onLogout, initialView }) {
     return true;
   }
 
-  async function handleCommentPost(postId) {
-    if (commentedPostIds.includes(postId)) return false;
+  async function handleCommentPost(postId, content) {
+    const trimmedContent = content.trim();
+
+    if (!trimmedContent) return false;
 
     await waitForUiFeedback();
-    setCommentedPostIds((currentCommentedPostIds) => [...currentCommentedPostIds, postId]);
+    const nextComment = createComment({
+      authorName: displayName,
+      content: trimmedContent,
+    });
+
     setDiscussionPosts((currentPosts) =>
       currentPosts.map((post) =>
         post.id === postId
           ? {
               ...post,
-              comments: post.comments + 1,
+              comments: [...post.comments, nextComment],
             }
           : post,
       ),
@@ -357,7 +427,8 @@ export default function Dashboard({ user, onLogout, initialView }) {
     setNotifications((currentNotifications) => [
       createNotification({
         title: "New comment on your post",
-        detail: `${displayName} commented on one of your discussion posts.`,
+        detail: `${displayName} replied: ${trimmedContent}`,
+        postId,
       }),
       ...currentNotifications,
     ]);
@@ -365,31 +436,22 @@ export default function Dashboard({ user, onLogout, initialView }) {
     return true;
   }
 
-  function handleProfileFieldChange(field, value) {
+  async function handleProfileSave(nextProfile) {
+    const trimmedDisplayName = nextProfile.displayName?.trim();
+
+    if (user?.id && trimmedDisplayName) {
+      await updateAccountProfile(user.id, { displayName: trimmedDisplayName });
+    }
+
+    await waitForUiFeedback();
     setProfile((currentProfile) => ({
       ...currentProfile,
-      [field]: value,
+      ...nextProfile,
+      bio: nextProfile.bio || "",
+      displayName: trimmedDisplayName || currentProfile.displayName,
+      imageAlt: nextProfile.imageAlt || currentProfile.imageAlt,
+      imageSrc: nextProfile.imageSrc || "",
     }));
-  }
-
-  function handleProfileImageUpload(event) {
-    const file = event.target.files?.[0];
-
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const imageResult = typeof reader.result === "string" ? reader.result : "";
-
-      setProfile((currentProfile) => ({
-        ...currentProfile,
-        imageSrc: imageResult,
-        imageAlt: file.name || "<INSERT PROFILE IMAGE HERE>",
-      }));
-    };
-
-    reader.readAsDataURL(file);
   }
 
   function renderView() {
@@ -408,7 +470,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
     if (activeView === DASHBOARD_VIEWS.DISCUSSIONS) {
       return (
         <DiscussionsView
-          commentedPostIds={commentedPostIds}
+          focusedPostId={highlightedPostId}
           likedPostIds={likedPostIds}
           posts={discussionPosts}
           savedPostIds={savedPostIds}
@@ -429,8 +491,6 @@ export default function Dashboard({ user, onLogout, initialView }) {
         savedPostIds={savedPostIds}
         userEmail={user?.email || "<USER_EMAIL>"}
         onCreatePost={handleCreatePost}
-        onProfileFieldChange={handleProfileFieldChange}
-        onProfileImageUpload={handleProfileImageUpload}
         onTabChange={setMySpaceTab}
       />
     );
@@ -473,6 +533,7 @@ export default function Dashboard({ user, onLogout, initialView }) {
         isOpen={isNotificationTrayOpen}
         notifications={notifications}
         onClose={closeNotifications}
+        onNotificationClick={handleNotificationSelect}
       />
 
       <button
@@ -489,15 +550,27 @@ export default function Dashboard({ user, onLogout, initialView }) {
 
       <div className="relative flex min-h-screen flex-col">
         <DashboardHeader
-          activeMeta={activeMeta}
+          activeView={activeView}
           displayName={displayName}
           hasUnreadNotifications={unreadNotificationCount > 0}
-          notificationCount={notifications.length}
+          notificationCount={unreadNotificationCount}
           onNotificationsClick={openNotifications}
+          onSaveProfile={handleProfileSave}
+          profile={profile}
         />
 
         <main className="flex-1 px-4 pb-4 pt-2 sm:px-6">
-          <div className={isChatView ? "w-full" : "mx-auto w-full max-w-4xl"}>{renderView()}</div>
+          <div
+            className={[
+              isChatView
+                ? "w-full"
+                : activeView === DASHBOARD_VIEWS.MY_SPACE
+                  ? "mx-auto w-full max-w-6xl"
+                  : "mx-auto w-full max-w-5xl",
+            ].join(" ")}
+          >
+            {renderView()}
+          </div>
         </main>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { FiBell, FiX } from "react-icons/fi";
 import PlaceholderBlock from "./PlaceholderBlock.jsx";
 
-export default function NotificationTray({ isOpen, notifications, onClose }) {
+export default function NotificationTray({ isOpen, notifications, onClose, onNotificationClick }) {
   return (
     <>
       <div
@@ -52,9 +52,11 @@ export default function NotificationTray({ isOpen, notifications, onClose }) {
 
           {notifications.length ? (
             notifications.map((notification) => (
-              <div
+              <button
+                type="button"
                 key={notification.id}
-                className="rounded-[28px] border border-white/10 bg-white/[0.04] p-4"
+                onClick={() => onNotificationClick(notification)}
+                className="w-full rounded-[28px] border border-white/10 bg-white/[0.04] p-4 text-left transition hover:border-white/20 hover:bg-white/[0.07]"
               >
                 <div className="flex items-center justify-between gap-3">
                   <h4 className="text-sm font-medium text-white">{notification.title}</h4>
@@ -63,7 +65,10 @@ export default function NotificationTray({ isOpen, notifications, onClose }) {
                   </span>
                 </div>
                 <p className="mt-2 break-words font-mono text-sm text-neutral-300">{notification.detail}</p>
-              </div>
+                {notification.postId ? (
+                  <p className="mt-3 text-xs uppercase tracking-[0.2em] text-neutral-500">Open post</p>
+                ) : null}
+              </button>
             ))
           ) : (
             <PlaceholderBlock

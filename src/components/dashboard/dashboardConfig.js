@@ -24,25 +24,9 @@ export const SIDEBAR_ITEMS = [
   },
 ];
 
-export const VIEW_META = {
-  [DASHBOARD_VIEWS.NEW_CHAT]: {
-    title: "New Chat",
-    description: "Chat with LearnSmart",
-  },
-  [DASHBOARD_VIEWS.DISCUSSIONS]: {
-    title: "Discussions",
-    description: "Community threads",
-  },
-  [DASHBOARD_VIEWS.MY_SPACE]: {
-    title: "My Space",
-    description: "Profile and saved activity",
-  },
-};
-
 export const MY_SPACE_TABS = [
   { id: "saved", label: "Saved" },
   { id: "liked", label: "Liked" },
-  { id: "bookmarked", label: "Bookmarked" },
 ];
 
 export function normalizeInitialView(view) {

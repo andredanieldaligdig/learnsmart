@@ -1,5 +1,4 @@
 import { FiLogOut, FiX } from "react-icons/fi";
-import PlaceholderBlock from "./PlaceholderBlock.jsx";
 import ProfileAvatar from "./ProfileAvatar.jsx";
 import { DASHBOARD_VIEWS, SIDEBAR_ITEMS } from "./dashboardConfig.js";
 
@@ -81,43 +80,30 @@ export default function DashboardSidebar({
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={onNewChat}
-        className="mt-3 rounded-xl px-3 py-2 text-left text-sm text-neutral-300 transition hover:bg-white/[0.06] hover:text-white"
-      >
-        Start new chat
-      </button>
-
       <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
-        <div className="text-xs uppercase tracking-[0.24em] text-neutral-500">Recent Chats</div>
+        {recentChats.length ? (
+          <>
+            <div className="text-xs uppercase tracking-[0.24em] text-neutral-500">Recent Chats</div>
 
-        <div className="mt-3 space-y-1">
-          {recentChats.length ? (
-            recentChats.slice(0, 8).map((chat) => (
-              <button
-                key={chat.id}
-                type="button"
-                onClick={() => onSelectChat(chat.id)}
-                className={[
-                  "w-full rounded-xl px-3 py-2 text-left text-sm transition",
-                  activeChatId === chat.id && activeView === DASHBOARD_VIEWS.NEW_CHAT
-                    ? "bg-white/[0.08] text-white"
-                    : "text-neutral-400 hover:bg-white/[0.05] hover:text-white",
-                ].join(" ")}
-              >
-                <div className="truncate">{chat.title}</div>
-              </button>
-            ))
-          ) : (
-            <PlaceholderBlock
-              label=""
-              lines={["<LOOP THROUGH CHAT HISTORY HERE>", "<RECENT_CHAT_TITLE>"]}
-              note="Connect your chat history here."
-              className="p-0"
-            />
-          )}
-        </div>
+            <div className="mt-3 space-y-1">
+              {recentChats.slice(0, 8).map((chat) => (
+                <button
+                  key={chat.id}
+                  type="button"
+                  onClick={() => onSelectChat(chat.id)}
+                  className={[
+                    "w-full rounded-xl px-3 py-2 text-left text-sm transition",
+                    activeChatId === chat.id && activeView === DASHBOARD_VIEWS.NEW_CHAT
+                      ? "bg-white/[0.08] text-white"
+                      : "text-neutral-400 hover:bg-white/[0.05] hover:text-white",
+                  ].join(" ")}
+                >
+                  <div className="truncate">{chat.title}</div>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div className="mt-4 bg-white/[0.04] p-3 rounded-xl">

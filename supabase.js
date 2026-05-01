@@ -68,6 +68,33 @@ export async function getAccountProfile(userId) {
   return data;
 }
 
+export async function updateAccountProfile(userId, { displayName }) {
+  const trimmedDisplayName = displayName?.trim();
+
+  if (!userId || !trimmedDisplayName) {
+    throw new Error("A valid user id and display name are required.");
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.updateUser({
+    data: {
+      name: trimmedDisplayName,
+      full_name: trimmedDisplayName,
+      username: trimmedDisplayName,
+    },
+  });
+
+  if (authError) throw authError;
+
+  const { error: profileError } = await supabase
+    .from("accounts")
+    .update({ username: trimmedDisplayName })
+    .eq("id", userId);
+
+  if (profileError) throw profileError;
+
+  return authData?.user || null;
+}
+
 
 // Login
 export async function loginAccount(email, password) {

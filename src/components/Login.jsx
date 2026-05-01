@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginAccount, supabase } from "../../supabase.js";
+import { DASHBOARD_VIEWS } from "./dashboard/dashboardConfig.js";
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -26,7 +27,7 @@ export default function Login({ onLogin }) {
 
         const user = await loginAccount(email, password);
         onLogin(user);
-        navigate("/", { state: { postLoginSplash: true } });
+        navigate("/", { state: { postLoginSplash: true, initialView: DASHBOARD_VIEWS.NEW_CHAT } });
 
       } else if (mode === "forgot") {
         if (!email) {
