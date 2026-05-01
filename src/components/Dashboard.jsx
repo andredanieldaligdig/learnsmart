@@ -232,17 +232,30 @@ useEffect(() => {
     let cancelled = false;
 
     async function syncDisplayName() {
-      const metadataName = getMetadataName(user);
-      if (metadataName) {
-        if (cancelled) return;
-        setProfile((currentProfile) => ({ ...currentProfile, displayName: metadataName }));
-        return;
-      }
+  const metadataName = getMetadataName(user);
+  if (!user?.id) {
+    if (cancelled) return;
+    setProfile((currentProfile) => ({ ...currentProfile, displayName: getDisplayName(user) }));
+    return;
+  }
+  try {
+    const accountProfile = await getAccountProfile(user.id);
+    if (cancelled) return;
+    setProfile((currentProfile) => ({
+      ...currentProfile,
+      displayName: accountProfile?.username || metadataName || getDisplayName(user),
+      bio: accountProfile?.bio || "",
+      imageSrc: accountProfile?.avatar_url || currentProfile.imageSrc,
+      imageAlt: accountProfile?.avatar_url ? "Profile image" : currentProfile.imageAlt,
+    }));
+    return;
+  } catch {
       if (!user?.id) {
         if (cancelled) return;
         setProfile((currentProfile) => ({ ...currentProfile, displayName: getDisplayName(user) }));
         return;
       }
+    }
       try {
       const accountProfile = await getAccountProfile(user.id);
       if (cancelled) return;
@@ -569,19 +582,20 @@ async function handleLogoutRequest() {
       );
     }
 
-    return (
-      <MySpaceView
-        activeTab={mySpaceTab}
-        displayName={displayName}
-        likedPostIds={likedPostIds}
-        posts={discussionPosts}
-        profile={profile}
-        savedPostIds={savedPostIds}
-        userEmail={user?.email || "<USER_EMAIL>"}
-        onCreatePost={handleCreatePost}
-        onTabChange={setMySpaceTab}
-      />
-    );
+  const myPosts = discussionPosts.filter((p) => p.authorUserId === user?.id);
+return (
+  <MySpaceView
+    activeTab={mySpaceTab}
+    displayName={displayName}
+    likedPostIds={likedPostIds}
+    posts={myPosts}
+    profile={profile}
+    savedPostIds={savedPostIds}
+    userEmail={user?.email || "<USER_EMAIL>"}
+    onCreatePost={handleCreatePost}
+    onTabChange={setMySpaceTab}
+  />
+);
   }
 
   return (
