@@ -61,13 +61,17 @@ export async function uploadAvatar(userId, file) {
   const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
   const { error: updateError } = await supabase
-    .from("accounts")
-    .update({ avatar_url: data.publicUrl })
-    .eq("id", userId);
+  .from("accounts")
+  .update({ avatar_url: data.publicUrl })
+  .eq("id", userId);
 
-  if (updateError) throw updateError;
+if (updateError) {
+  console.error("Avatar URL update error:", updateError);
+  throw updateError;
+}
 
-  return data.publicUrl;
+console.log("Avatar saved to DB:", data.publicUrl);
+return data.publicUrl;
 }
 
 // ✅ Now fetches username, avatar_url AND bio

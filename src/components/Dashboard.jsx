@@ -529,11 +529,16 @@ try {
   if (isLoggingOut) return;
   const trimmedDisplayName = nextProfile.displayName?.trim();
   if (user?.id) {
-    await updateAccountProfile(user.id, {
-      displayName: trimmedDisplayName,
-      bio: nextProfile.bio ?? "",
-    });
-  }
+  console.log("Saving profile:", { 
+    userId: user.id, 
+    displayName: trimmedDisplayName, 
+    bio: nextProfile.bio 
+  });
+  await updateAccountProfile(user.id, {
+    displayName: trimmedDisplayName,
+    bio: nextProfile.bio ?? "",
+  });
+}
   await waitForUiFeedback();
   setProfile((currentProfile) => ({
     ...currentProfile,
