@@ -78,7 +78,7 @@ function PostPreviewCard({ post, onDeletePost }) {
                     type="button"
                     disabled={isDeleting}
                     onClick={handleDeleteClick}
-                    className="inline-flex items-center gap-1 rounded-full bg-rose-200 px-3 py-1 text-xs font-medium text-rose-950 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="dashboard-danger-button inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <FiCheck className="text-xs" />
                     {isDeleting ? "Deleting..." : "Confirm"}
@@ -88,7 +88,7 @@ function PostPreviewCard({ post, onDeletePost }) {
                 <button
                   type="button"
                   onClick={() => setIsDeleteConfirming(true)}
-                  className="inline-flex items-center gap-1 rounded-full border border-rose-300/20 bg-rose-400/10 px-3 py-1 text-xs text-rose-100 transition hover:bg-rose-400/18"
+                  className="dashboard-danger-soft inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition"
                 >
                   <FiTrash2 className="text-xs" />
                   Delete
@@ -224,7 +224,7 @@ export default function MySpaceView({
                 <div
                   className={[
                     "text-xs transition",
-                    postStatus === "success" ? "text-emerald-300" : "text-neutral-500",
+                    postStatus === "success" ? "text-emerald-300" : "dashboard-muted",
                   ].join(" ")}
                 >
                   {postStatus === "posting"
@@ -240,9 +240,9 @@ export default function MySpaceView({
                   className={[
                     "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition",
                     postStatus === "success"
-                      ? "bg-emerald-300 text-emerald-950"
+                      ? "dashboard-success-soft"
                       : postStatus === "posting"
-                        ? "dashboard-action-strong cursor-wait"
+                        ? "dashboard-action-strong cursor-wait opacity-80"
                         : "dashboard-action-strong",
                   ].join(" ")}
                 >

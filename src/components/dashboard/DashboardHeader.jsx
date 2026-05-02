@@ -105,7 +105,7 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
   return (
     <>
       {isOpen ? (
-        <div className="fixed inset-0 z-[60] bg-neutral-950/45 backdrop-blur-xl backdrop-saturate-150" />
+        <div className="dashboard-backdrop fixed inset-0 z-[60] backdrop-blur-xl backdrop-saturate-150" />
       ) : null}
 
       <div ref={popoverRef} className="relative z-[70]">
@@ -213,9 +213,9 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
                   className={[
                     "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition",
                     saveState === "saved"
-                      ? "bg-emerald-300 text-emerald-950"
+                      ? "dashboard-success-soft"
                       : saveState === "saving"
-                        ? "dashboard-action-strong cursor-wait"
+                        ? "dashboard-action-strong cursor-wait opacity-80"
                         : "dashboard-action-strong",
                   ].join(" ")}
                 >

@@ -41,7 +41,7 @@ function isPostAuthorComment(comment, post) {
 
 function AuthorBadge() {
   return (
-    <span className="inline-flex items-center rounded-full border border-sky-400/25 bg-sky-400/12 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-100">
+    <span className="dashboard-info-soft inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]">
       Author
     </span>
   );
@@ -294,7 +294,7 @@ const DiscussionCard = memo(function DiscussionCard({
                 onClick={() => onSelectAuthor(post)}
                 className={[
                   "flex max-w-full items-start gap-3 rounded-2xl px-2 py-1 text-left transition",
-                  isSelectedAuthor ? "bg-white/[0.06]" : "hover:bg-white/[0.04]",
+                  isSelectedAuthor ? "dashboard-surface-soft" : "hover:bg-white/[0.04]",
                 ].join(" ")}
               >
                 <ProfileAvatar
@@ -308,7 +308,7 @@ const DiscussionCard = memo(function DiscussionCard({
                     <div className="dashboard-title truncate text-sm font-semibold">{post.authorName}</div>
                     <FiChevronDown
                       className={[
-                        "text-xs text-neutral-500 transition duration-300",
+                        "dashboard-muted text-xs transition duration-300",
                         isSelectedAuthor ? "rotate-[-90deg]" : "",
                       ].join(" ")}
                     />
@@ -337,7 +337,7 @@ const DiscussionCard = memo(function DiscussionCard({
 
           <div className="flex flex-wrap items-center justify-end gap-2">
             {rank === 0 ? (
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-neutral-300">
+              <div className="dashboard-surface-strong dashboard-copy inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
                 <FiTrendingUp />
                 Top liked
               </div>
@@ -377,7 +377,7 @@ const DiscussionCard = memo(function DiscussionCard({
                         setIsDeleteConfirming(true);
                         setIsActionsMenuOpen(false);
                       }}
-                      className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-rose-200 transition hover:bg-rose-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="dashboard-danger-soft mt-1 flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <FiTrash2 />
                       Delete post
@@ -422,7 +422,7 @@ const DiscussionCard = memo(function DiscussionCard({
                     !editDraft.trim()
                       ? "cursor-not-allowed bg-white/25 text-neutral-500"
                       : pendingAction === "edit"
-                        ? "cursor-wait bg-white/80 text-black"
+                        ? "dashboard-action-strong cursor-wait opacity-80"
                         : "dashboard-action-strong",
                   ].join(" ")}
                 >
@@ -454,7 +454,7 @@ const DiscussionCard = memo(function DiscussionCard({
             className={[
               "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition",
               hasLiked
-                ? "cursor-not-allowed border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
+                ? "dashboard-success-soft cursor-not-allowed"
                 : "dashboard-action border",
             ].join(" ")}
           >
@@ -478,9 +478,9 @@ const DiscussionCard = memo(function DiscussionCard({
             className={[
               "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition",
               successfulAction === "save" || hasSaved
-                ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
+                ? "dashboard-success-soft"
                 : pendingAction === "save"
-                  ? "cursor-wait border-white/10 bg-white/[0.08] text-white"
+                  ? "dashboard-action cursor-wait opacity-80"
                   : "dashboard-action border",
             ].join(" ")}
           >
@@ -550,9 +550,9 @@ const DiscussionCard = memo(function DiscussionCard({
                     className={[
                       "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition",
                       successfulAction === "comment"
-                        ? "bg-emerald-300 text-emerald-950"
+                        ? "dashboard-success-soft"
                         : pendingAction === "comment"
-                          ? "cursor-wait bg-white/80 text-black"
+                          ? "dashboard-action-strong cursor-wait opacity-80"
                           : commentDraft.trim()
                             ? "dashboard-action-strong"
                             : "cursor-not-allowed bg-white/30 text-neutral-500",
@@ -579,12 +579,12 @@ const DiscussionCard = memo(function DiscussionCard({
             aria-label="Close delete confirmation"
             disabled={pendingAction === "delete"}
             onClick={() => setIsDeleteConfirming(false)}
-            className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+            className="dashboard-backdrop absolute inset-0 backdrop-blur-[2px]"
           />
-          <div className="relative z-[81] w-full max-w-md rounded-[28px] border border-rose-300/15 bg-neutral-950/96 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.45)] sm:bg-neutral-900/96 sm:backdrop-blur-xl">
-            <div className="text-[11px] uppercase tracking-[0.24em] text-rose-200/80">Delete post</div>
-            <div className="mt-3 text-xl font-semibold tracking-tight text-white">Delete this post permanently?</div>
-            <p className="mt-3 text-sm leading-6 text-neutral-400">
+          <div className="dashboard-panel relative z-[81] w-full max-w-md rounded-[28px] border p-6 sm:backdrop-blur-xl">
+            <div className="dashboard-danger-soft inline-flex rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.24em]">Delete post</div>
+            <div className="dashboard-title mt-3 text-xl font-semibold tracking-tight">Delete this post permanently?</div>
+            <p className="dashboard-copy mt-3 text-sm leading-6">
               This action cannot be undone. The post and its discussion will be removed.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
@@ -592,7 +592,7 @@ const DiscussionCard = memo(function DiscussionCard({
                 type="button"
                 disabled={pendingAction === "delete"}
                 onClick={() => setIsDeleteConfirming(false)}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-neutral-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="dashboard-action inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <FiX />
                 Cancel
@@ -601,7 +601,7 @@ const DiscussionCard = memo(function DiscussionCard({
                 type="button"
                 disabled={pendingAction === "delete"}
                 onClick={handleDelete}
-                className="inline-flex items-center gap-2 rounded-full bg-rose-200 px-4 py-2 text-sm font-medium text-rose-950 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="dashboard-danger-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <FiTrash2 />
                 {pendingAction === "delete" ? "Deleting..." : "Delete post"}
@@ -710,7 +710,7 @@ const DiscussionsView = memo(function DiscussionsView({
       {selectedAuthorPost ? (
           <button
             type="button"
-            className="fixed inset-0 z-40 bg-black/60 transition-opacity"
+            className="dashboard-backdrop fixed inset-0 z-40 transition-opacity"
             onClick={closeAuthorPanel}
           aria-label="Close profile panel backdrop"
         />

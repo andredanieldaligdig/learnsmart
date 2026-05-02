@@ -179,6 +179,17 @@
   --dashboard-accent-bg: #ffffff;
   --dashboard-accent-text: #000000;
   --dashboard-line: rgba(255, 255, 255, 0.12);
+  --dashboard-danger-bg: #fecdd3;
+  --dashboard-danger-text: #4c0519;
+  --dashboard-danger-soft-bg: rgba(251, 113, 133, 0.12);
+  --dashboard-danger-soft-border: rgba(251, 113, 133, 0.26);
+  --dashboard-danger-soft-text: #fecdd3;
+  --dashboard-success-soft-bg: rgba(110, 231, 183, 0.12);
+  --dashboard-success-soft-border: rgba(110, 231, 183, 0.24);
+  --dashboard-success-soft-text: #d1fae5;
+  --dashboard-info-soft-bg: rgba(56, 189, 248, 0.14);
+  --dashboard-info-soft-border: rgba(56, 189, 248, 0.24);
+  --dashboard-info-soft-text: #e0f2fe;
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 32%),
     linear-gradient(135deg, rgba(10, 10, 10, 1) 0%, rgba(24, 24, 27, 1) 54%, rgba(9, 9, 11, 1) 100%);
@@ -201,6 +212,17 @@
   --dashboard-accent-bg: #111827;
   --dashboard-accent-text: #f8fafc;
   --dashboard-line: rgba(148, 163, 184, 0.32);
+  --dashboard-danger-bg: #881337;
+  --dashboard-danger-text: #fff1f2;
+  --dashboard-danger-soft-bg: rgba(225, 29, 72, 0.1);
+  --dashboard-danger-soft-border: rgba(225, 29, 72, 0.22);
+  --dashboard-danger-soft-text: #9f1239;
+  --dashboard-success-soft-bg: rgba(16, 185, 129, 0.1);
+  --dashboard-success-soft-border: rgba(16, 185, 129, 0.2);
+  --dashboard-success-soft-text: #065f46;
+  --dashboard-info-soft-bg: rgba(14, 165, 233, 0.12);
+  --dashboard-info-soft-border: rgba(14, 165, 233, 0.2);
+  --dashboard-info-soft-text: #075985;
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.82), transparent 34%),
     linear-gradient(135deg, #f8f4ec 0%, #eef4fb 52%, #f6f0e8 100%);
@@ -303,6 +325,38 @@
 .dashboard-theme-toggle-indicator {
   background: var(--dashboard-accent-bg) !important;
   color: var(--dashboard-accent-text) !important;
+}
+
+.dashboard-danger-button {
+  background: var(--dashboard-danger-bg) !important;
+  color: var(--dashboard-danger-text) !important;
+  border-color: transparent !important;
+}
+
+.dashboard-danger-button:hover {
+  filter: brightness(0.97);
+}
+
+.dashboard-danger-soft {
+  background: var(--dashboard-danger-soft-bg) !important;
+  border-color: var(--dashboard-danger-soft-border) !important;
+  color: var(--dashboard-danger-soft-text) !important;
+}
+
+.dashboard-danger-soft:hover {
+  filter: brightness(0.98);
+}
+
+.dashboard-success-soft {
+  background: var(--dashboard-success-soft-bg) !important;
+  border-color: var(--dashboard-success-soft-border) !important;
+  color: var(--dashboard-success-soft-text) !important;
+}
+
+.dashboard-info-soft {
+  background: var(--dashboard-info-soft-bg) !important;
+  border-color: var(--dashboard-info-soft-border) !important;
+  color: var(--dashboard-info-soft-text) !important;
 }
 
 .dashboard-backdrop {
