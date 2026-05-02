@@ -5,12 +5,12 @@ import { MY_SPACE_TABS } from "../dashboardConfig.js";
 
 function CollectionPostCard({ metricLabel, post }) {
   return (
-    <article className="rounded-2xl border border-white/10 bg-black/20 p-4">
+    <article className="dashboard-surface-strong rounded-2xl border p-4">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-sm font-medium text-white">{post.authorName}</div>
-        <div className="text-xs text-neutral-500">{metricLabel}</div>
+        <div className="dashboard-title text-sm font-medium">{post.authorName}</div>
+        <div className="dashboard-muted text-xs">{metricLabel}</div>
       </div>
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-300">{post.content}</p>
+      <p className="dashboard-copy mt-2 whitespace-pre-wrap text-sm leading-6">{post.content}</p>
     </article>
   );
 }
@@ -30,7 +30,7 @@ function CollectionPanel({ activeTab, likedPosts, savedPosts }) {
   }
 
   return (
-    <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-5 text-sm text-neutral-400">
+    <div className="dashboard-surface-strong dashboard-copy rounded-2xl border border-dashed px-4 py-5 text-sm">
       {activeTab === "liked" ? "No liked posts yet." : "No saved posts yet."}
     </div>
   );
@@ -50,7 +50,7 @@ function PostPreviewCard({ post, onDeletePost }) {
   }
 
   return (
-    <article className="rounded-[26px] border border-white/10 bg-black/20 p-4">
+    <article className="dashboard-surface-strong rounded-[26px] border p-4">
       <div className="flex items-start gap-3">
         <ProfileAvatar
           displayName={post.authorName}
@@ -60,16 +60,16 @@ function PostPreviewCard({ post, onDeletePost }) {
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-sm font-medium text-white">{post.authorName}</div>
+            <div className="dashboard-title text-sm font-medium">{post.authorName}</div>
             <div className="flex items-center gap-3">
-              <div className="text-xs text-neutral-500">{post.likes} likes - {post.saves} saves</div>
+              <div className="dashboard-muted text-xs">{post.likes} likes - {post.saves} saves</div>
               {isDeleteConfirming ? (
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     disabled={isDeleting}
                     onClick={() => setIsDeleteConfirming(false)}
-                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-neutral-300 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className="dashboard-action inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <FiX className="text-xs" />
                     Cancel
@@ -96,7 +96,7 @@ function PostPreviewCard({ post, onDeletePost }) {
               )}
             </div>
           </div>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-300">{post.content}</p>
+          <p className="dashboard-copy mt-2 whitespace-pre-wrap text-sm leading-6">{post.content}</p>
         </div>
       </div>
     </article>
@@ -138,8 +138,8 @@ export default function MySpaceView({
 
   return (
     <section className="grid gap-5 xl:grid-cols-[320px,minmax(0,1fr)]">
-      <div className="space-y-4">
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5">
+        <div className="space-y-4">
+        <div className="dashboard-surface rounded-[28px] border p-5">
           <div className="flex items-center gap-4">
             <ProfileAvatar
               displayName={displayName}
@@ -148,17 +148,17 @@ export default function MySpaceView({
               size="lg"
             />
             <div className="min-w-0">
-              <div className="truncate text-lg font-semibold text-white">{displayName}</div>
-              <div className="truncate text-sm text-neutral-400">{userEmail}</div>
+              <div className="dashboard-title truncate text-lg font-semibold">{displayName}</div>
+              <div className="dashboard-copy truncate text-sm">{userEmail}</div>
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-neutral-300">
+          <div className="dashboard-surface-strong dashboard-copy mt-4 rounded-2xl border px-4 py-3 text-sm leading-6">
             {profile.bio?.trim() || "No bio added yet."}
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5">
+        <div className="dashboard-surface rounded-[28px] border p-5">
           <div className="flex flex-wrap gap-2">
             {MY_SPACE_TABS.map((tab) => (
               <button
@@ -168,8 +168,8 @@ export default function MySpaceView({
                 className={[
                   "rounded-full px-4 py-2 text-sm transition",
                   activeTab === tab.id
-                    ? "bg-white text-black"
-                    : "bg-black/20 text-neutral-300 hover:bg-white/[0.08] hover:text-white",
+                    ? "dashboard-action-strong"
+                    : "dashboard-action border",
                 ].join(" ")}
               >
                 {tab.label}
@@ -188,13 +188,13 @@ export default function MySpaceView({
       </div>
 
       <div className="space-y-4">
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5">
+        <div className="dashboard-surface rounded-[28px] border p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-xs uppercase tracking-[0.24em] text-neutral-500">Post a topic</div>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Share a study question, insight, or update.</h2>
+              <div className="dashboard-muted text-xs uppercase tracking-[0.24em]">Post a topic</div>
+              <h2 className="dashboard-title mt-2 text-xl font-semibold tracking-tight">Share a study question, insight, or update.</h2>
             </div>
-            <div className="hidden rounded-2xl border border-white/10 bg-black/20 p-3 text-neutral-400 md:block">
+            <div className="dashboard-surface-strong dashboard-copy hidden rounded-2xl border p-3 md:block">
               <FiImage />
             </div>
           </div>
@@ -206,7 +206,7 @@ export default function MySpaceView({
               imageSrc={profile.imageSrc}
               size="sm"
             />
-            <div className="flex-1 rounded-[24px] border border-white/10 bg-black/20 p-3">
+            <div className="dashboard-surface-strong flex-1 rounded-[24px] border p-3">
               <textarea
                 value={postDraft}
                 onChange={(event) => setPostDraft(event.target.value)}
@@ -218,7 +218,7 @@ export default function MySpaceView({
                 }}
                 rows={4}
                 placeholder="Share a study question, insight, or topic with the community..."
-                className="w-full resize-none bg-transparent text-sm leading-6 text-white outline-none placeholder:text-neutral-500"
+                className="dashboard-textarea dashboard-title w-full resize-none text-sm leading-6 outline-none placeholder:text-neutral-500"
               />
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <div
@@ -242,8 +242,8 @@ export default function MySpaceView({
                     postStatus === "success"
                       ? "bg-emerald-300 text-emerald-950"
                       : postStatus === "posting"
-                        ? "cursor-wait bg-white/80 text-black"
-                        : "bg-white text-black hover:bg-neutral-200",
+                        ? "dashboard-action-strong cursor-wait"
+                        : "dashboard-action-strong",
                   ].join(" ")}
                 >
                   <FiSend className="text-sm" />
@@ -254,8 +254,8 @@ export default function MySpaceView({
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5">
-          <div className="text-xs uppercase tracking-[0.24em] text-neutral-500">Recent posts</div>
+        <div className="dashboard-surface rounded-[28px] border p-5">
+          <div className="dashboard-muted text-xs uppercase tracking-[0.24em]">Recent posts</div>
           <div className="mt-4 space-y-3">
             {posts.length ? (
               posts.slice(0, 3).map((post) => (
@@ -266,7 +266,7 @@ export default function MySpaceView({
                 />
               ))
             ) : (
-              <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-5 text-sm text-neutral-400">
+              <div className="dashboard-surface-strong dashboard-copy rounded-2xl border border-dashed px-4 py-5 text-sm">
                 No posts yet.
               </div>
             )}

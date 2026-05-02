@@ -164,6 +164,7 @@ const EMPTY_CHAT_MESSAGES = [];
 const DASHBOARD_VIEW_STORAGE_KEY = "learnsmart-dashboard-view";
 const MY_SPACE_TAB_STORAGE_KEY = "learnsmart-my-space-tab";
 const CHAT_SESSIONS_STORAGE_KEY_PREFIX = "learnsmart-chat-sessions";
+const DASHBOARD_THEME_STORAGE_KEY = "learnsmart-dashboard-theme";
 
 function isUuid(value) {
   return typeof value === "string"
@@ -268,6 +269,11 @@ export default function Dashboard({ user, onLogout, initialView }) {
     imageSrc: "",
     imageAlt: "<INSERT PROFILE IMAGE HERE>",
   }));
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return "dark";
+    const storedTheme = window.localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY);
+    return storedTheme === "light" ? "light" : "dark";
+  });
   // Load posts + liked/saved IDs from Supabase on mount
 useEffect(() => {
   if (!user?.id) return;
@@ -369,6 +375,11 @@ useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(MY_SPACE_TAB_STORAGE_KEY, mySpaceTab);
   }, [mySpaceTab]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, theme);
+  }, [theme]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -911,6 +922,11 @@ useEffect(() => {
     await onLogout();
   }, [closeNotifications, closeSidebar, isLoggingOut, onLogout]);
 
+  const handleToggleTheme = useCallback(() => {
+    if (isLoggingOut) return;
+    setTheme((currentTheme) => (currentTheme === "dark" ? "light" : "dark"));
+  }, [isLoggingOut]);
+
   function renderView() {
     if (activeView === DASHBOARD_VIEWS.NEW_CHAT) {
       return (
@@ -960,17 +976,17 @@ useEffect(() => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-neutral-950 text-neutral-100">
+    <div className="dashboard-shell relative min-h-screen overflow-hidden" data-theme={theme}>
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_transparent_32%),linear-gradient(135deg,rgba(10,10,10,1)_0%,rgba(24,24,27,1)_54%,rgba(9,9,11,1)_100%)]" />
-        <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-white/8 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-white/6 blur-3xl" />
-        <div className="absolute inset-0 bg-dot-grid opacity-20 animate-grid" />
+        <div className="dashboard-shell-overlay absolute inset-0" />
+        <div className="dashboard-glow absolute left-0 top-0 h-72 w-72 rounded-full blur-3xl" />
+        <div className="dashboard-glow absolute bottom-0 right-0 h-96 w-96 rounded-full blur-3xl" />
+        <div className="dashboard-dot-grid absolute inset-0 bg-dot-grid animate-grid" />
       </div>
 
       <div
         className={[
-          "fixed inset-0 z-30 bg-black/50 transition",
+          "dashboard-backdrop fixed inset-0 z-30 transition",
           isSidebarOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         ].join(" ")}
         onClick={closeSidebar}
@@ -984,6 +1000,7 @@ useEffect(() => {
         isOpen={isSidebarOpen}
         profile={profile}
         recentChats={recentChats}
+        theme={theme}
         user={user}
         isLoggingOut={isLoggingOut}
         onClose={closeSidebar}
@@ -992,6 +1009,7 @@ useEffect(() => {
         onDeleteChat={handleDeleteChat}
         onSelectChat={handleRecentChatSelect}
         onSelectView={openView}
+        onToggleTheme={handleToggleTheme}
       />
 
       <NotificationTray
@@ -1006,7 +1024,7 @@ useEffect(() => {
         type="button"
         onClick={() => setIsSidebarOpen(true)}
         className={[
-          "fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.06] text-neutral-300 transition hover:bg-white/[0.1] hover:text-white",
+          "dashboard-action fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-lg border transition",
           isSidebarOpen ? "pointer-events-none opacity-0" : "opacity-100",
         ].join(" ")}
         aria-label="Open sidebar"
@@ -1022,12 +1040,12 @@ useEffect(() => {
       >
         <div
           className={[
-            "flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl",
+            "flex items-center gap-3 rounded-2xl border px-4 py-3 backdrop-blur-xl",
             mutationFeedback.tone === "success"
               ? "border-emerald-300/15 bg-emerald-300/10 text-emerald-100"
-              : mutationFeedback.tone === "error"
+            : mutationFeedback.tone === "error"
                 ? "border-rose-300/15 bg-rose-400/10 text-rose-100"
-                : "border-white/10 bg-neutral-900/92 text-white",
+                : "dashboard-panel dashboard-title",
           ].join(" ")}
         >
           {mutationFeedback.tone === "loading" ? (
@@ -1071,17 +1089,17 @@ useEffect(() => {
       </div>
 
       {isLoggingOut ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-neutral-950/84 backdrop-blur-xl">
+        <div className="dashboard-backdrop fixed inset-0 z-[90] flex items-center justify-center backdrop-blur-xl">
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.14),_transparent_32%),linear-gradient(135deg,rgba(10,10,10,0.98)_0%,rgba(24,24,27,0.99)_54%,rgba(9,9,11,1)_100%)] animate-gradient" />
-            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/8 blur-3xl" />
-            <div className="absolute -bottom-40 -left-32 h-96 w-96 rounded-full bg-white/6 blur-3xl" />
-            <div className="absolute inset-0 bg-dot-grid opacity-15 animate-grid" />
+            <div className="dashboard-shell-overlay absolute inset-0 animate-gradient" />
+            <div className="dashboard-glow absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full blur-3xl" />
+            <div className="dashboard-glow absolute -bottom-40 -left-32 h-96 w-96 rounded-full blur-3xl" />
+            <div className="dashboard-dot-grid absolute inset-0 bg-dot-grid animate-grid" />
           </div>
           <div className="relative flex flex-col items-center gap-4 px-6 text-center">
             <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/15 border-t-white" />
-            <div className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Logging out</div>
-            <div className="text-sm text-white/70">Securing your session and returning to login.</div>
+            <div className="dashboard-title text-3xl font-semibold tracking-tight sm:text-4xl">Logging out</div>
+            <div className="dashboard-copy text-sm">Securing your session and returning to login.</div>
           </div>
         </div>
       ) : null}

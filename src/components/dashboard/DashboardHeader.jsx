@@ -120,8 +120,8 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
           className={[
             "inline-flex h-11 items-center gap-2 rounded-2xl border px-4 text-sm transition",
             isOpen
-              ? "border-white/20 bg-white text-black"
-              : "border-white/10 bg-white/[0.05] text-neutral-200 hover:bg-white/[0.1] hover:text-white",
+              ? "dashboard-action-strong"
+              : "dashboard-action",
           ].join(" ")}
         >
           <FiEdit2 className="text-sm" />
@@ -129,30 +129,30 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
         </button>
 
         {isOpen ? (
-          <div className="absolute right-0 top-[calc(100%+12px)] z-50 w-[min(92vw,380px)] overflow-hidden rounded-[30px] border border-white/14 bg-neutral-950 p-6 shadow-[0_40px_120px_rgba(0,0,0,0.72)] ring-1 ring-white/10 backdrop-blur-[40px]">
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,18,22,0.995)_0%,rgba(8,8,10,1)_100%)]" />
+          <div className="dashboard-panel absolute right-0 top-[calc(100%+12px)] z-50 w-[min(92vw,380px)] overflow-hidden rounded-[30px] border p-6 ring-1 ring-white/10 backdrop-blur-[40px]">
+            <div className="dashboard-panel absolute inset-0" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.16),_transparent_32%)] opacity-95" />
             <div className="relative">
               <div>
-                <div className="text-xs uppercase tracking-[0.24em] text-neutral-500">Profile settings</div>
-                <div className="mt-2 text-lg font-semibold tracking-tight text-white">Update your profile</div>
-                <div className="mt-1 text-sm text-neutral-400">These changes reflect across your posts and profile surfaces.</div>
+                <div className="dashboard-muted text-xs uppercase tracking-[0.24em]">Profile settings</div>
+                <div className="dashboard-title mt-2 text-lg font-semibold tracking-tight">Update your profile</div>
+                <div className="dashboard-copy mt-1 text-sm">These changes reflect across your posts and profile surfaces.</div>
               </div>
 
               <div className="mt-5 space-y-4">
                 <label className="block">
-                  <span className="text-xs text-neutral-500">Name</span>
+                  <span className="dashboard-muted text-xs">Name</span>
                   <input
                     type="text"
                     value={draftProfile.displayName}
                     onChange={(event) => handleFieldChange("displayName", event.target.value)}
                     placeholder="Enter your full name"
-                    className="mt-2 w-full rounded-xl border border-white/12 bg-black/55 px-3 py-2.5 text-sm text-white outline-none transition focus:border-white/24 placeholder:text-neutral-500"
+                    className="dashboard-surface-strong dashboard-input dashboard-title mt-2 w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-white/24"
                   />
                 </label>
 
                 <label className="block">
-                  <span className="text-xs text-neutral-500">Profile image</span>
+                  <span className="dashboard-muted text-xs">Profile image</span>
                   {draftProfile.imageSrc && !draftProfile.imageSrc.startsWith("blob:") ? (
                     <div className="mt-2 mb-2 flex items-center gap-3">
                       <img
@@ -160,28 +160,28 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
                         alt={draftProfile.imageAlt}
                         className="h-12 w-12 rounded-2xl border border-white/10 object-cover"
                       />
-                      <span className="text-xs text-neutral-400">Current avatar</span>
+                      <span className="dashboard-copy text-xs">Current avatar</span>
                     </div>
                   ) : null}
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
-                    className="mt-2 block w-full overflow-auto rounded-xl border border-white/12 bg-black/55 px-3 py-2.5 text-sm text-neutral-300 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-black"
+                    className="dashboard-surface-strong dashboard-copy mt-2 block w-full overflow-auto rounded-xl border px-3 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-black"
                   />
-                  <span className="mt-1 block text-xs text-neutral-500">
+                  <span className="dashboard-muted mt-1 block text-xs">
                     Image uploads automatically save your avatar.
                   </span>
                 </label>
 
                 <label className="block">
-                  <span className="text-xs text-neutral-500">Bio</span>
+                  <span className="dashboard-muted text-xs">Bio</span>
                   <textarea
                     value={draftProfile.bio}
                     onChange={(event) => handleFieldChange("bio", event.target.value)}
                     placeholder="Write a short professional bio."
                     rows={4}
-                    className="mt-2 w-full resize-y rounded-xl border border-white/12 bg-black/55 px-3 py-2.5 text-sm text-white outline-none transition focus:border-white/24 placeholder:text-neutral-500"
+                    className="dashboard-surface-strong dashboard-textarea dashboard-title mt-2 w-full resize-y rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-white/24"
                   />
                 </label>
               </div>
@@ -194,7 +194,7 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
                       ? "text-rose-300"
                       : saveState === "saved"
                         ? "text-emerald-300"
-                        : "text-neutral-500",
+                        : "dashboard-muted",
                   ].join(" ")}
                 >
                   {errorMessage
@@ -215,8 +215,8 @@ function ProfileSettingsPopover({ profile, onSaveProfile }) {
                     saveState === "saved"
                       ? "bg-emerald-300 text-emerald-950"
                       : saveState === "saving"
-                        ? "cursor-wait bg-white/80 text-black"
-                        : "bg-white text-black hover:bg-neutral-200",
+                        ? "dashboard-action-strong cursor-wait"
+                        : "dashboard-action-strong",
                   ].join(" ")}
                 >
                   {saveLabel}
@@ -240,9 +240,9 @@ export default function DashboardHeader({
   profile,
 }) {
   return (
-    <header className="sticky top-0 z-20 bg-neutral-950/85 backdrop-blur">
+    <header className="dashboard-panel sticky top-0 z-20 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-        <div className="text-xs uppercase tracking-[0.28em] text-neutral-500">LearnSmart</div>
+        <div className="dashboard-muted text-xs uppercase tracking-[0.28em]">LearnSmart</div>
         <div className="flex items-center gap-3">
           {activeView === "my_space" ? (
             <ProfileSettingsPopover profile={profile} onSaveProfile={onSaveProfile} />
@@ -251,7 +251,7 @@ export default function DashboardHeader({
           <button
             type="button"
             onClick={onNotificationsClick}
-            className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-black/60 bg-white text-black transition hover:bg-neutral-100"
+            className="dashboard-action-strong relative flex h-11 w-11 items-center justify-center rounded-2xl border transition"
             aria-label="Open notifications"
           >
             <FiBell className="text-lg" />
@@ -272,7 +272,7 @@ export default function DashboardHeader({
             ) : null}
           </button>
 
-          <div className="truncate text-xs text-neutral-500">{displayName}</div>
+          <div className="dashboard-muted truncate text-xs">{displayName}</div>
         </div>
       </div>
     </header>

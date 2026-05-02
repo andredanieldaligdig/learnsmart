@@ -19,7 +19,7 @@ function MessageBubble({ message }) {
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       {isUser ? (
         <div className={bubbleMaxWidth}>
-          <div className="rounded-3xl bg-white px-5 py-3 text-[15px] leading-7 text-black shadow-[0_10px_30px_rgba(255,255,255,0.08)]">
+          <div className="dashboard-action-strong rounded-3xl px-5 py-3 text-[15px] leading-7 shadow-[0_10px_30px_rgba(255,255,255,0.08)]">
             <div className="whitespace-pre-wrap">{message.content}</div>
           </div>
         </div>
@@ -27,10 +27,10 @@ function MessageBubble({ message }) {
         <div
           className={[
             bubbleMaxWidth,
-            "chat-assistant-bubble relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.05] px-5 py-4 shadow-[0_12px_36px_rgba(0,0,0,0.22)]",
+            "dashboard-surface chat-assistant-bubble relative overflow-hidden rounded-[28px] border px-5 py-4 shadow-[0_12px_36px_rgba(0,0,0,0.22)]",
           ].join(" ")}
         >
-          <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.26em] text-white/32">
+          <div className="dashboard-muted mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.26em]">
             <span className="h-px w-6 bg-white/16" />
             LearnSmart AI
           </div>
@@ -44,7 +44,7 @@ function MessageBubble({ message }) {
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-400 [animation-delay:300ms]" />
             </div>
           ) : (
-            <div className="chat-assistant-copy whitespace-pre-wrap text-[15px] leading-7 text-neutral-200">
+            <div className="dashboard-copy chat-assistant-copy whitespace-pre-wrap text-[15px] leading-7">
               {message.content}
               {message.streaming ? (
                 <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-neutral-400 align-middle" />
@@ -52,7 +52,7 @@ function MessageBubble({ message }) {
             </div>
           )}
 
-          {message.note ? <div className="mt-3 text-xs text-neutral-500">{message.note}</div> : null}
+          {message.note ? <div className="dashboard-muted mt-3 text-xs">{message.note}</div> : null}
         </div>
       )}
     </div>
@@ -221,11 +221,11 @@ export default function ChatModule({
     <div className="flex min-h-[calc(100vh-6.5rem)] flex-col">
       <div className="flex w-full flex-1 flex-col pb-28 pt-10 sm:pt-14">
         {isInitialState ? (
-          <div className="mb-8">
-            <div className="text-[28px] font-medium tracking-tight text-white sm:text-[32px]">
+        <div className="mb-8">
+            <div className="dashboard-title text-[28px] font-medium tracking-tight sm:text-[32px]">
               Hello, {displayName}
             </div>
-            <div className="mt-2 text-sm text-neutral-500">
+            <div className="dashboard-muted mt-2 text-sm">
               Ask anything to start a new conversation.
             </div>
           </div>
@@ -240,7 +240,7 @@ export default function ChatModule({
       </div>
 
       <div className="sticky bottom-0 pb-4 pt-6">
-        <div className="w-full rounded-[24px] bg-neutral-900/92 px-3 py-2 shadow-[0_16px_50px_rgba(0,0,0,0.35)] backdrop-blur">
+        <div className="dashboard-panel w-full rounded-[24px] px-3 py-2 backdrop-blur">
           <div className="flex items-end gap-2">
             <textarea
               ref={textareaRef}
@@ -255,13 +255,13 @@ export default function ChatModule({
               rows={1}
               placeholder={isStreaming ? "AI is responding..." : "Ask anything about your studies..."}
               disabled={isStreaming}
-              className="min-h-[28px] flex-1 resize-none bg-transparent px-2 py-1 text-[15px] leading-7 text-white outline-none placeholder:text-neutral-500 disabled:opacity-50"
+              className="dashboard-textarea dashboard-title min-h-[28px] flex-1 resize-none px-2 py-1 text-[15px] leading-7 outline-none placeholder:text-neutral-500 disabled:opacity-50"
             />
             {isStreaming ? (
               <button
                 type="button"
                 onClick={handleStop}
-                className="mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-700 text-white transition hover:bg-neutral-600"
+                className="dashboard-action mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition"
                 aria-label="Stop generation"
               >
                 <FiSquare className="text-xs" />
@@ -271,7 +271,7 @@ export default function ChatModule({
                 type="button"
                 onClick={handleSubmit}
                 disabled={!chatInput.trim()}
-                className="mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-40"
+                className="dashboard-action-strong mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Send message"
               >
                 <FiArrowUp className="text-sm" />

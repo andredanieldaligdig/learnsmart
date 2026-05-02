@@ -49,8 +49,8 @@ function AuthorBadge() {
 
 function StatPill({ label, value }) {
   return (
-    <div className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-neutral-400">
-      <span className="text-white">{value}</span> {label}
+    <div className="dashboard-surface-strong dashboard-copy rounded-full border px-3 py-1 text-xs">
+      <span className="dashboard-title">{value}</span> {label}
     </div>
   );
 }
@@ -61,23 +61,23 @@ const AuthorPostsPanel = memo(function AuthorPostsPanel({ post, recentPosts, onC
   const authorBio = post.authorBio?.trim() || "This user has not added a bio yet.";
 
   return (
-    <aside className="discussion-author-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-[28rem] flex-col bg-neutral-950/98 px-4 py-4 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:max-w-[30rem] sm:bg-neutral-900/96 sm:backdrop-blur-md">
+    <aside className="dashboard-panel discussion-author-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-[28rem] flex-col px-4 py-4 sm:max-w-[30rem] sm:backdrop-blur-md">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-xs uppercase tracking-[0.28em] text-neutral-500">LearnSmart</div>
-          <div className="mt-1 text-base font-medium text-white">Profile</div>
+          <div className="dashboard-muted text-xs uppercase tracking-[0.28em]">LearnSmart</div>
+          <div className="dashboard-title mt-1 text-base font-medium">Profile</div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.06] text-neutral-300 transition hover:bg-white/[0.1] hover:text-white"
+          className="dashboard-action flex h-9 w-9 items-center justify-center rounded-lg border transition"
           aria-label="Close profile panel"
         >
           <FiX />
         </button>
       </div>
 
-      <div className="mt-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
+      <div className="dashboard-surface mt-5 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border p-5">
         <div className="flex items-center gap-3">
           <ProfileAvatar
             displayName={post.authorName}
@@ -86,22 +86,22 @@ const AuthorPostsPanel = memo(function AuthorPostsPanel({ post, recentPosts, onC
             size="sm"
           />
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-white">{post.authorName}</div>
-            <div className="text-xs text-neutral-500">Author profile</div>
+            <div className="dashboard-title truncate text-sm font-semibold">{post.authorName}</div>
+            <div className="dashboard-muted text-xs">Author profile</div>
           </div>
         </div>
 
-        <div className="discussion-author-panel-content mt-4 flex-1 rounded-[24px] border border-white/10 bg-black/20 p-4">
+        <div className="dashboard-surface-strong discussion-author-panel-content mt-4 flex-1 rounded-[24px] border p-4">
           <div className="space-y-5">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Bio</div>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-neutral-300">{authorBio}</p>
+              <div className="dashboard-muted text-[11px] uppercase tracking-[0.22em]">Bio</div>
+              <p className="dashboard-copy mt-3 whitespace-pre-wrap text-sm leading-7">{authorBio}</p>
             </div>
 
             <div>
               <div className="flex items-center justify-between gap-3">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Recent posts</div>
-                <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] text-neutral-400">
+                <div className="dashboard-muted text-[11px] uppercase tracking-[0.22em]">Recent posts</div>
+                <div className="dashboard-surface rounded-full border px-3 py-1 text-[11px] dashboard-copy">
                   {recentPosts.length} shared
                 </div>
               </div>
@@ -112,11 +112,11 @@ const AuthorPostsPanel = memo(function AuthorPostsPanel({ post, recentPosts, onC
                     className={[
                       "discussion-author-post-card flex min-h-[11.5rem] flex-col rounded-2xl border px-4 py-4 text-sm",
                       recentPost.id === post.id
-                        ? "border-white/15 bg-white/[0.06] text-white"
-                        : "border-white/8 bg-white/[0.03] text-neutral-300",
+                        ? "dashboard-surface-soft dashboard-title"
+                        : "dashboard-surface dashboard-copy",
                     ].join(" ")}
                   >
-                    <div className="text-xs text-neutral-500">{formatPostAge(recentPost.createdAt)}</div>
+                    <div className="dashboard-muted text-xs">{formatPostAge(recentPost.createdAt)}</div>
                     <div className="mt-3 flex-1 overflow-y-auto pr-1">
                       <p className="whitespace-pre-wrap leading-6">{recentPost.content}</p>
                     </div>
@@ -279,7 +279,7 @@ const DiscussionCard = memo(function DiscussionCard({
     <article
       ref={cardRef}
       className={[
-        "rounded-[28px] border border-white/10 bg-white/[0.04] p-6 transition duration-300",
+        "dashboard-surface rounded-[28px] border p-6 transition duration-300",
         isFocused
           ? "ring-1 ring-white/20"
           : "",
@@ -304,8 +304,8 @@ const DiscussionCard = memo(function DiscussionCard({
                   size="sm"
                 />
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <div className="truncate text-sm font-semibold text-white">{post.authorName}</div>
+                    <div className="flex items-center gap-2">
+                    <div className="dashboard-title truncate text-sm font-semibold">{post.authorName}</div>
                     <FiChevronDown
                       className={[
                         "text-xs text-neutral-500 transition duration-300",
@@ -313,7 +313,7 @@ const DiscussionCard = memo(function DiscussionCard({
                       ].join(" ")}
                     />
                   </div>
-                  <div className="mt-1 text-xs text-neutral-500">{formatPostAge(post.createdAt)}</div>
+                  <div className="dashboard-muted mt-1 text-xs">{formatPostAge(post.createdAt)}</div>
                 </div>
               </button>
             ) : (
@@ -326,10 +326,10 @@ const DiscussionCard = memo(function DiscussionCard({
                 />
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="truncate text-sm font-semibold text-white">{post.authorName}</div>
+                    <div className="dashboard-title truncate text-sm font-semibold">{post.authorName}</div>
                     <AuthorBadge />
                   </div>
-                  <div className="mt-1 text-xs text-neutral-500">{formatPostAge(post.createdAt)}</div>
+                  <div className="dashboard-muted mt-1 text-xs">{formatPostAge(post.createdAt)}</div>
                 </div>
               </div>
             )}
@@ -349,14 +349,14 @@ const DiscussionCard = memo(function DiscussionCard({
                   type="button"
                   disabled={pendingAction === "delete"}
                   onClick={() => setIsActionsMenuOpen((currentValue) => !currentValue)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/[0.08] text-white transition hover:border-white/30 hover:bg-white/[0.14] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="dashboard-action flex h-10 w-10 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Post options"
                 >
                   <FiMoreHorizontal />
                 </button>
 
                 {isActionsMenuOpen ? (
-                  <div className="absolute right-0 top-full z-20 mt-2 w-40 rounded-2xl border border-white/15 bg-neutral-900 p-2 shadow-[0_18px_45px_rgba(0,0,0,0.42)]">
+                  <div className="dashboard-panel absolute right-0 top-full z-20 mt-2 w-40 rounded-2xl border p-2">
                     <button
                       type="button"
                       disabled={pendingAction === "edit" || pendingAction === "delete"}
@@ -365,7 +365,7 @@ const DiscussionCard = memo(function DiscussionCard({
                         setEditDraft(post.content);
                         setIsActionsMenuOpen(false);
                       }}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-neutral-200 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="dashboard-action flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <FiEdit2 />
                       {isEditing ? "Close editor" : "Edit post"}
@@ -390,15 +390,15 @@ const DiscussionCard = memo(function DiscussionCard({
         </div>
 
         {isEditing ? (
-          <div className="mt-5 rounded-[24px] border border-white/10 bg-black/20 p-4">
+          <div className="dashboard-surface-strong mt-5 rounded-[24px] border p-4">
             <textarea
               value={editDraft}
               onChange={(event) => setEditDraft(event.target.value)}
               rows={4}
-              className="w-full resize-none bg-transparent text-sm leading-7 text-white outline-none placeholder:text-neutral-500"
+              className="dashboard-textarea dashboard-title w-full resize-none text-sm leading-7 outline-none placeholder:text-neutral-500"
             />
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs text-neutral-500">
+              <div className="dashboard-muted text-xs">
                 {pendingAction === "edit" ? "Saving changes..." : "Keep it concise and clear."}
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -408,7 +408,7 @@ const DiscussionCard = memo(function DiscussionCard({
                     setIsEditing(false);
                     setEditDraft(post.content);
                   }}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-neutral-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+                  className="dashboard-action inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition"
                 >
                   <FiX />
                   Cancel
@@ -423,7 +423,7 @@ const DiscussionCard = memo(function DiscussionCard({
                       ? "cursor-not-allowed bg-white/25 text-neutral-500"
                       : pendingAction === "edit"
                         ? "cursor-wait bg-white/80 text-black"
-                        : "bg-white text-black hover:bg-neutral-200",
+                        : "dashboard-action-strong",
                   ].join(" ")}
                 >
                   <FiCheck />
@@ -433,12 +433,12 @@ const DiscussionCard = memo(function DiscussionCard({
             </div>
           </div>
         ) : (
-          <p className="mt-5 whitespace-pre-wrap border-l border-white/10 pl-4 text-[15px] leading-8 text-neutral-100">
+          <p className="dashboard-copy dashboard-line mt-5 whitespace-pre-wrap border-l pl-4 text-[15px] leading-8">
             {post.content}
           </p>
         )}
 
-        <div className="mt-5 border-t border-white/10 pt-4">
+        <div className="dashboard-line mt-5 border-t pt-4">
           <div className="flex flex-wrap items-center gap-2">
             <StatPill label="likes" value={post.likes} />
             <StatPill label="comments" value={post.comments.length} />
@@ -455,7 +455,7 @@ const DiscussionCard = memo(function DiscussionCard({
               "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition",
               hasLiked
                 ? "cursor-not-allowed border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-                : "border-white/10 bg-black/20 text-neutral-300 hover:border-white/18 hover:bg-white/[0.08] hover:text-white",
+                : "dashboard-action border",
             ].join(" ")}
           >
             <FiHeart />
@@ -465,7 +465,7 @@ const DiscussionCard = memo(function DiscussionCard({
           <button
             type="button"
             onClick={() => setIsCommentOpen((currentValue) => !currentValue)}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-neutral-300 transition hover:border-white/18 hover:bg-white/[0.08] hover:text-white"
+            className="dashboard-action inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition"
           >
             <FiMessageCircle />
             {commentButtonLabel}
@@ -481,7 +481,7 @@ const DiscussionCard = memo(function DiscussionCard({
                 ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
                 : pendingAction === "save"
                   ? "cursor-wait border-white/10 bg-white/[0.08] text-white"
-                  : "border-white/10 bg-black/20 text-neutral-300 hover:border-white/18 hover:bg-white/[0.08] hover:text-white",
+                  : "dashboard-action border",
             ].join(" ")}
           >
             <FiSave />
@@ -496,45 +496,45 @@ const DiscussionCard = memo(function DiscussionCard({
           ].join(" ")}
         >
           <div className="overflow-hidden">
-            <div className="space-y-4 border-t border-white/10 pt-4">
+            <div className="dashboard-line space-y-4 border-t pt-4">
               {post.comments.length ? (
                 <div className="space-y-3">
                   {post.comments.map((comment) => {
                     const authoredByPostOwner = isPostAuthorComment(comment, post);
 
                     return (
-                      <div key={comment.id} className="rounded-[22px] border border-white/10 bg-black/20 px-4 py-3">
+                      <div key={comment.id} className="dashboard-surface-strong rounded-[22px] border px-4 py-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <div className="text-sm font-semibold text-white">{comment.authorName}</div>
+                            <div className="dashboard-title text-sm font-semibold">{comment.authorName}</div>
                             {authoredByPostOwner ? <AuthorBadge /> : null}
                           </div>
-                          <div className="text-xs text-neutral-500">{formatPostAge(comment.createdAt)}</div>
+                          <div className="dashboard-muted text-xs">{formatPostAge(comment.createdAt)}</div>
                         </div>
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-300">{comment.content}</p>
+                        <p className="dashboard-copy mt-2 whitespace-pre-wrap text-sm leading-6">{comment.content}</p>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div className="rounded-[22px] border border-dashed border-white/10 bg-black/10 px-4 py-4 text-sm text-neutral-500">
+                <div className="dashboard-surface-strong dashboard-muted rounded-[22px] border border-dashed px-4 py-4 text-sm">
                   No comments yet.
                 </div>
               )}
 
-              <div className="rounded-[24px] border border-white/10 bg-black/20 p-3">
+              <div className="dashboard-surface-strong rounded-[24px] border p-3">
                 <textarea
                   value={commentDraft}
                   onChange={(event) => setCommentDraft(event.target.value)}
                   rows={3}
                   placeholder="Write a comment..."
-                  className="w-full resize-none bg-transparent text-sm leading-6 text-white outline-none placeholder:text-neutral-500"
+                  className="dashboard-textarea dashboard-title w-full resize-none text-sm leading-6 outline-none placeholder:text-neutral-500"
                 />
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                   <div
                     className={[
                       "text-xs transition",
-                      successfulAction === "comment" ? "text-emerald-300" : "text-neutral-500",
+                      successfulAction === "comment" ? "text-emerald-300" : "dashboard-muted",
                     ].join(" ")}
                   >
                     {pendingAction === "comment"
@@ -554,7 +554,7 @@ const DiscussionCard = memo(function DiscussionCard({
                         : pendingAction === "comment"
                           ? "cursor-wait bg-white/80 text-black"
                           : commentDraft.trim()
-                            ? "bg-white text-black hover:bg-neutral-200"
+                            ? "dashboard-action-strong"
                             : "cursor-not-allowed bg-white/30 text-neutral-500",
                     ].join(" ")}
                   >
@@ -708,10 +708,10 @@ const DiscussionsView = memo(function DiscussionsView({
   return (
     <section className="space-y-5">
       {selectedAuthorPost ? (
-        <button
-          type="button"
-          className="fixed inset-0 z-40 bg-black/60 transition-opacity"
-          onClick={closeAuthorPanel}
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-black/60 transition-opacity"
+            onClick={closeAuthorPanel}
           aria-label="Close profile panel backdrop"
         />
       ) : null}
@@ -740,7 +740,7 @@ const DiscussionsView = memo(function DiscussionsView({
           </div>
         </div>
       ) : (
-        <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-neutral-400">
+        <div className="dashboard-surface dashboard-copy rounded-[28px] border border-dashed px-5 py-6 text-sm">
           No topics posted yet.
         </div>
       )}
