@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { loginAccount, supabase } from "../../supabase.js";
 import { DASHBOARD_VIEWS } from "./dashboard/dashboardConfig.js";
 import {
@@ -428,6 +428,15 @@ export default function Login({ onLogin }) {
                   >
                     Sign up
                   </span>
+                </p>
+                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.22)", marginTop: 12, lineHeight: 1.6 }}>
+                  <Link to="/terms" style={{ color: "rgba(255,255,255,0.5)", textDecoration: "underline" }}>
+                    Terms of Service
+                  </Link>{" "}
+                  {" "}and{" "}
+                  <Link to="/privacy" style={{ color: "rgba(255,255,255,0.5)", textDecoration: "underline" }}>
+                    Privacy Policy
+                  </Link>
                 </p>
               </>
             ) : (

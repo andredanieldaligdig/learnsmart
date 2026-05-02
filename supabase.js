@@ -1,4 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
+import {
+  hasApprovedParentalConsent,
+  isUnderMinimumAge,
+  LEGAL_ACCEPTANCE_ERROR,
+  UNDERAGE_ACCESS_MESSAGE,
+} from "./src/utils/ageGate.js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -23,15 +29,44 @@ export const supabase = supabaseConfigError
 // AUTH
 // ======================================================
 
-export async function createAccount(email, password, displayName, gender, dob) {
+async function getAccountDateOfBirth(userId) {
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("dob")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Unable to read account DOB:", error);
+    return null;
+  }
+
+  return data?.dob || null;
+}
+
+export async function createAccount(email, password, displayName, gender, dob, acceptedLegal) {
+  if (!dob) throw new Error("Date of birth is required.");
+  if (!acceptedLegal) throw new Error(LEGAL_ACCEPTANCE_ERROR);
+  if (isUnderMinimumAge(dob)) throw new Error(UNDERAGE_ACCESS_MESSAGE);
+
+  const trimmedEmail = email.trim();
+  const trimmedDisplayName = displayName.trim();
+  const acceptedAt = new Date().toISOString();
+
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: trimmedEmail,
     password,
     options: {
       data: {
-        name: displayName,
-        full_name: displayName,
-        username: displayName,
+        name: trimmedDisplayName,
+        full_name: trimmedDisplayName,
+        username: trimmedDisplayName,
+        dob,
+        legal_acceptance_at: acceptedAt,
+        terms_accepted_at: acceptedAt,
+        privacy_accepted_at: acceptedAt,
       },
     },
   });
@@ -44,7 +79,7 @@ export async function createAccount(email, password, displayName, gender, dob) {
   await new Promise((resolve) => setTimeout(resolve, 800));
   const { error: profileError } = await supabase
     .from('accounts')
-    .update({ username: displayName, gender, dob })
+    .update({ username: trimmedDisplayName, gender, dob })
     .eq('id', user.id);
   if (profileError) throw profileError;
 }
@@ -159,9 +194,21 @@ if (avatarUrl !== undefined && avatarUrl !== null) updates.avatar_url = avatarUr
 }
 
 export async function loginAccount(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
   if (error) throw error;
-  return data.user;
+
+  const user = data.user;
+  const dateOfBirth =
+    user?.user_metadata?.dob ||
+    user?.user_metadata?.date_of_birth ||
+    (await getAccountDateOfBirth(user?.id));
+
+  if (isUnderMinimumAge(dateOfBirth) && !hasApprovedParentalConsent(user?.user_metadata)) {
+    await supabase.auth.signOut();
+    throw new Error(UNDERAGE_ACCESS_MESSAGE);
+  }
+
+  return user;
 }
 
 export async function logout() {

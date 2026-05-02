@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createAccount } from "../../supabase.js";
+import {
+  calculateAge,
+  isUnderMinimumAge,
+  LEGAL_ACCEPTANCE_ERROR,
+  MINIMUM_AGE,
+  UNDERAGE_ACCESS_MESSAGE,
+} from "../utils/ageGate.js";
 
 const PHRASES = [
   '"Finally understood derivatives after 3 years of confusion."',
@@ -54,13 +61,16 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [dob, setDob] = useState("");
   const [gender, setGender] = useState("");
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const typed = useTypewriter(PHRASES);
+  const age = calculateAge(dob);
+  const isUnderage = Boolean(dob) && isUnderMinimumAge(dob);
 
   const handleSignUp = async () => {
-    if (!displayName || !email || !password || !gender) {
+    if (!displayName || !email || !password || !gender || !dob) {
       setError("Please fill in all required fields");
       return;
     }
@@ -73,10 +83,20 @@ export default function Signup() {
       return;
     }
 
+    if (isUnderMinimumAge(dob)) {
+      setError(UNDERAGE_ACCESS_MESSAGE);
+      return;
+    }
+
+    if (!acceptedLegal) {
+      setError(LEGAL_ACCEPTANCE_ERROR);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const result = await createAccount(email, password, displayName.trim(), gender, dob);
+      const result = await createAccount(email, password, displayName.trim(), gender, dob, acceptedLegal);
 
       setMessage(
         result.session
@@ -89,6 +109,7 @@ export default function Signup() {
       setConfirmPassword("");
       setDob("");
       setGender("");
+      setAcceptedLegal(false);
       window.setTimeout(() => {
         navigate("/login");
       }, 2200);
@@ -318,6 +339,19 @@ export default function Signup() {
               />
             </div>
 
+            <p style={{
+              marginTop: -2,
+              fontSize: 12,
+              lineHeight: 1.5,
+              color: isUnderage ? "rgba(255,120,120,0.9)" : "rgba(255,255,255,0.35)",
+            }}>
+              {isUnderage
+                ? UNDERAGE_ACCESS_MESSAGE
+                : age !== null
+                  ? `You must be at least ${MINIMUM_AGE} years old to create an account.`
+                  : `Enter your date of birth. Users under ${MINIMUM_AGE} require parental consent through customer support.`}
+            </p>
+
             <div style={{ position: "relative" }}>
               <label style={{
                 position: "absolute", left: 16, top: 10,
@@ -336,6 +370,38 @@ export default function Signup() {
                 <option value="other" style={{ background: "#0a0a0b" }}>Other</option>
               </select>
             </div>
+
+            <label style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              padding: "14px 16px",
+              borderRadius: 16,
+              border: "1px solid rgba(255,255,255,0.07)",
+              background: "rgba(255,255,255,0.02)",
+              color: "rgba(255,255,255,0.72)",
+              fontSize: 12,
+              lineHeight: 1.6,
+              cursor: "pointer",
+            }}>
+              <input
+                type="checkbox"
+                checked={acceptedLegal}
+                onChange={(e) => setAcceptedLegal(e.target.checked)}
+                style={{ marginTop: 2, accentColor: "#ffffff", cursor: "pointer" }}
+              />
+              <span>
+                I agree to the{" "}
+                <Link to="/terms" style={{ color: "#fff", textDecoration: "underline" }}>
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy" style={{ color: "#fff", textDecoration: "underline" }}>
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
 
             {error && (
               <p style={{
@@ -372,6 +438,9 @@ export default function Signup() {
               <span onClick={() => navigate("/login")} style={{ color: "rgba(255,255,255,0.55)", cursor: "pointer" }}>
                 Sign in
               </span>
+            </p>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.22)", marginTop: 12, lineHeight: 1.6 }}>
+              By creating an account, you confirm that you meet the age requirements for LearnSmart.
             </p>
           </div>
         </div>

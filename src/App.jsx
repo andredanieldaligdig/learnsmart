@@ -5,6 +5,8 @@ import Signup from "./components/Signup.jsx";
 import ForgotPassword from "./components/forgot-password.jsx";
 import ResetPassword from "./components/reset-password.jsx";
 import Dashboard from "./components/Dashboard.jsx";
+import TermsOfService from "./components/TermsOfService.jsx";
+import PrivacyPolicy from "./components/PrivacyPolicy.jsx";
 import { DASHBOARD_VIEWS } from "./components/dashboard/dashboardConfig.js";
 import { supabase, supabaseConfigError, logout } from "../supabase.js";
 import PostLoginSplash from "./components/PostLoginSplash.jsx";
@@ -191,7 +193,14 @@ function LoadingScreen() {
   const pathname = window.location.pathname;
   const storedView = window.localStorage.getItem(DASHBOARD_VIEW_STORAGE_KEY);
 
-  if (pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password" || pathname === "/reset-password") {
+  if (
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname === "/terms" ||
+    pathname === "/privacy"
+  ) {
     return <AuthPageSkeleton />;
   }
 
@@ -261,6 +270,8 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
 
         {/* ✅ CONDITIONAL */}
         {!user ? (
