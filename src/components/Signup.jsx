@@ -418,12 +418,12 @@ export default function Signup() {
 
             <button
               onClick={handleSignUp}
-              disabled={loading}
+              disabled={loading || !acceptedLegal}
               style={{
                 width: "100%", borderRadius: 16, border: "1px solid rgba(255,255,255,0.12)",
                 background: "#fff", color: "#000", fontFamily: "'DM Sans', sans-serif",
-                fontSize: 14, fontWeight: 500, padding: "15px", cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.45 : 1, marginTop: 4,
+                fontSize: 14, fontWeight: 500, padding: "15px", cursor: loading || !acceptedLegal ? "not-allowed" : "pointer",
+                opacity: loading || !acceptedLegal ? 0.45 : 1, marginTop: 4,
                 transition: "background 0.15s",
               }}
             >
