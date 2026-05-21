@@ -1,13 +1,41 @@
 import { useEffect, useRef, useState } from "react";
-import { FiArrowUp, FiSquare } from "react-icons/fi";
+import { FiArrowUp, FiSquare, FiPaperclip, FiX, FiDownload } from "react-icons/fi";
+import { exportConversation } from "../../utils/exportConversation.js";
 
 const AI_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const AI_CHAT_ENDPOINT = AI_API_BASE_URL ? `${AI_API_BASE_URL}/api/chat` : "/api/chat";
 const AI_SYSTEM_PROMPT =
-  "You are LearnSmart's AI study assistant. You help students understand difficult concepts, prepare for exams, explain topics clearly, and provide study strategies. Be concise but thorough, use examples where helpful, and keep an encouraging, supportive tone.";
+  `You are LearnSmart's AI study assistant - an educational tool designed exclusively for students.
+
+CORE PURPOSE: Help students with academic learning, understanding concepts, exam preparation, research, study strategies, and educational topics only.
+
+ALLOWED TOPICS: Mathematics, Sciences, Languages, History, Literature, Social Studies, Computer Science, Business, Economics, Arts, Philosophy, and other legitimate academic subjects.
+
+STRICTLY PROHIBITED TOPICS - Politely decline and redirect:
+- Gaming, video games, game strategies
+- Gambling, betting, or any wagering
+- Non-educational entertainment
+- Illegal activities
+- Adult/NSFW content
+- Political/religious propaganda
+- Personal financial advice (recommend consulting professionals)
+
+RESPONSE GUIDELINES:
+1. If a question is educational in nature, provide comprehensive help
+2. If a question relates to prohibited topics, politely decline and explain: "I'm designed to help with educational topics. This topic isn't covered in my academic scope. Is there an educational subject I can help you with?"
+3. If a general knowledge question extends beyond education (e.g., "What is poker?"), provide basic factual information, but decline deeper engagement
+4. Always maintain an encouraging, supportive tone for legitimate academic questions
+5. Use clear examples and break down complex concepts
+
+Be concise but thorough. Cite sources when possible. Encourage critical thinking.`;
 const REVEAL_FRAME_MS = 18;
 const REVEAL_MIN_CHUNK = 1;
 const REVEAL_MAX_CHUNK = 16;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_FILE_TYPES = {
+  image: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+  document: ["application/pdf", "text/plain", "application/msword"],
+};
 
 function MessageBubble({ message }) {
   const role = typeof message.role === "string" ? message.role.toLowerCase() : "";
@@ -20,6 +48,15 @@ function MessageBubble({ message }) {
       {isUser ? (
         <div className={bubbleMaxWidth}>
           <div className="dashboard-action-strong rounded-3xl px-5 py-3 text-[15px] leading-7 shadow-[0_10px_30px_rgba(255,255,255,0.08)]">
+            {message.attachments && message.attachments.length > 0 && (
+              <div className="mb-3 space-y-2">
+                {message.attachments.map((attachment) => (
+                  <div key={attachment.id} className="text-xs opacity-75">
+                    📎 {attachment.name}
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="whitespace-pre-wrap">{message.content}</div>
           </div>
         </div>
@@ -59,6 +96,40 @@ function MessageBubble({ message }) {
   );
 }
 
+function FilePreview({ attachment, onRemove }) {
+  const isImage = attachment.type?.startsWith("image/");
+
+  return (
+    <div className="dashboard-surface relative flex items-center gap-2 rounded-lg border p-2">
+      {isImage ? (
+        <img
+          src={attachment.preview}
+          alt={attachment.name}
+          className="h-12 w-12 rounded object-cover"
+        />
+      ) : (
+        <div className="flex h-12 w-12 items-center justify-center rounded bg-white/5">
+          <FiPaperclip className="text-sm" />
+        </div>
+      )}
+      <div className="flex-1 overflow-hidden">
+        <div className="truncate text-sm font-medium">{attachment.name}</div>
+        <div className="text-xs opacity-60">
+          {(attachment.size / 1024).toFixed(1)} KB
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => onRemove(attachment.id)}
+        className="dashboard-action flex h-7 w-7 shrink-0 items-center justify-center rounded border transition hover:bg-white/5"
+        aria-label="Remove attachment"
+      >
+        <FiX className="text-xs" />
+      </button>
+    </div>
+  );
+}
+
 export default function ChatModule({
   chatInput,
   displayName,
@@ -70,9 +141,12 @@ export default function ChatModule({
   const isInitialState = messages.length === 0;
   const textareaRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
   const abortControllerRef = useRef(null);
   const revealStateRef = useRef({ cancelled: false, timerId: null });
   const [isStreaming, setIsStreaming] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -212,21 +286,86 @@ export default function ChatModule({
     abortControllerRef.current?.abort();
   }
 
+  function handleFileSelect(event) {
+    const files = event.target.files;
+    if (!files) return;
+
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`File ${file.name} is too large. Max size is 10MB.`);
+        continue;
+      }
+
+      const isImage = ALLOWED_FILE_TYPES.image.includes(file.type);
+      const isDocument = ALLOWED_FILE_TYPES.document.includes(file.type);
+
+      if (!isImage && !isDocument) {
+        alert(`File type not supported: ${file.type}`);
+        continue;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const attachment = {
+          id: `${Date.now()}-${Math.random()}`,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: e.target?.result,
+          preview: isImage ? e.target?.result : null,
+        };
+        setAttachments((prev) => [...prev, attachment]);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    event.target.value = "";
+  }
+
+  function handleRemoveAttachment(id) {
+    setAttachments((prev) => prev.filter((att) => att.id !== id));
+  }
+
   function handleSubmit() {
     if (isStreaming) return;
-    onSubmit();
+    onSubmit(attachments);
+    setAttachments([]);
+  }
+
+  async function handleExportConversation(format) {
+    if (messages.length === 0) {
+      alert("No conversation to export");
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const success = await exportConversation(
+        messages,
+        format,
+        `LearnSmart-Chat-${new Date().toISOString().slice(0, 10)}`
+      );
+      if (!success && format === "pdf") {
+        alert("PDF export requires jsPDF library. Exported as HTML instead. You can save as PDF from your browser.");
+      }
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Export failed. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   return (
     <div className="flex min-h-[calc(100vh-6.5rem)] flex-col">
-      <div className="flex w-full flex-1 flex-col pb-28 pt-10 sm:pt-14">
+      <div className="flex w-full flex-1 flex-col pb-32 pt-10 sm:pt-14">
         {isInitialState ? (
-        <div className="mb-8">
+          <div className="mb-8">
             <div className="dashboard-title text-[28px] font-medium tracking-tight sm:text-[32px]">
               Hello, {displayName}
             </div>
             <div className="dashboard-muted mt-2 text-sm">
-              Ask anything to start a new conversation.
+              Ask anything to start a new conversation. You can also upload images and files.
             </div>
           </div>
         ) : null}
@@ -240,8 +379,77 @@ export default function ChatModule({
       </div>
 
       <div className="sticky bottom-0 pb-4 pt-6">
+        {!isInitialState && (
+          <div className="mb-3 flex gap-2 px-3">
+            <button
+              type="button"
+              onClick={() => handleExportConversation("text")}
+              disabled={isExporting}
+              className="dashboard-action flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition hover:bg-white/5 disabled:opacity-50"
+              title="Download conversation as text"
+            >
+              <FiDownload className="text-sm" />
+              Text
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExportConversation("html")}
+              disabled={isExporting}
+              className="dashboard-action flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition hover:bg-white/5 disabled:opacity-50"
+              title="Download conversation as HTML (can print to PDF)"
+            >
+              <FiDownload className="text-sm" />
+              HTML
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExportConversation("pdf")}
+              disabled={isExporting}
+              className="dashboard-action flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition hover:bg-white/5 disabled:opacity-50"
+              title="Download conversation as PDF"
+            >
+              <FiDownload className="text-sm" />
+              PDF
+            </button>
+          </div>
+        )}
+
+        {attachments.length > 0 && (
+          <div className="mb-3 space-y-2 px-3">
+            <div className="text-xs opacity-60">Attachments ({attachments.length})</div>
+            <div className="space-y-2">
+              {attachments.map((attachment) => (
+                <FilePreview
+                  key={attachment.id}
+                  attachment={attachment}
+                  onRemove={handleRemoveAttachment}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="dashboard-panel w-full rounded-[24px] px-3 py-2 backdrop-blur">
           <div className="flex items-end gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isStreaming}
+              className="dashboard-action mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition disabled:opacity-50"
+              aria-label="Attach file or image"
+              title="Attach image or document"
+            >
+              <FiPaperclip className="text-sm" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.txt,.doc,.docx"
+              onChange={handleFileSelect}
+              className="hidden"
+              aria-label="File input"
+            />
             <textarea
               ref={textareaRef}
               value={chatInput}
@@ -270,7 +478,7 @@ export default function ChatModule({
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={!chatInput.trim()}
+                disabled={!chatInput.trim() && attachments.length === 0}
                 className="dashboard-action-strong mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Send message"
               >

@@ -753,12 +753,27 @@ useEffect(() => {
 
     try {
       await likePost(user.id, postId);
+      
+      // Create notification for post author
+      const post = discussionPosts.find((p) => p.id === postId);
+      if (post && post.authorUserId !== user?.id) {
+        // Only notify if the liker is not the post author
+        setNotifications((currentNotifications) => [
+          createNotification({
+            title: `${displayName} liked your post`,
+            detail: post.content.substring(0, 100) + (post.content.length > 100 ? "..." : ""),
+            postId,
+          }),
+          ...currentNotifications,
+        ]);
+      }
+      
       feedback.succeed("Post liked");
     } catch (err) {
       console.error("Like failed:", err);
       feedback.fail("Could not like post");
     }
-  }, [beginMutationFeedback, isLoggingOut, likedPostIds, user?.id]);
+  }, [beginMutationFeedback, displayName, discussionPosts, isLoggingOut, likedPostIds, user?.id]);
 
   const handleSavePost = useCallback(async (postId) => {
     if (isLoggingOut) return false;
@@ -816,6 +831,19 @@ useEffect(() => {
             : candidatePost
         )
       );
+
+      // Create notification for post author
+      if (post && post.authorUserId !== user?.id) {
+        // Only notify if the commenter is not the post author
+        setNotifications((currentNotifications) => [
+          createNotification({
+            title: `${displayName} commented on your post`,
+            detail: trimmedContent.substring(0, 100) + (trimmedContent.length > 100 ? "..." : ""),
+            postId,
+          }),
+          ...currentNotifications,
+        ]);
+      }
     } catch (err) {
       console.error("Comment save failed:", err);
       feedback.fail("Could not post comment");
