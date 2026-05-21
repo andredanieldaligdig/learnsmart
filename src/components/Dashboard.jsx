@@ -616,7 +616,8 @@ useEffect(() => {
     const targetId = activeChatId || createUuid();
     
     // Message content is just the text - attachments are sent separately
-    const messageContent = trimmedInput || (attachments.length > 0 ? "Analyze this:" : "");
+    const messageContent =
+      trimmedInput || (attachments.length > 0 ? "Please analyze the attached image or file in detail." : "");
 
     const userMessage = {
       id: createId("message"),

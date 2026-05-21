@@ -35,8 +35,8 @@ function transformMessages(messages) {
 
     const content = [];
     const messageText =
-      typeof message.content === "string" && message.content !== "Analyze this:"
-        ? message.content
+      typeof message.content === "string" && message.content.trim()
+        ? message.content.trim()
         : "";
 
     // OpenRouter's chat/completions endpoint expects OpenAI-style multimodal content.
@@ -75,7 +75,7 @@ function transformMessages(messages) {
     if (content.length === 0) {
       content.push({
         type: "text",
-        text: message.content || "Please analyze the attached file.",
+        text: "Please analyze the attached image or file in detail.",
       });
     }
 
