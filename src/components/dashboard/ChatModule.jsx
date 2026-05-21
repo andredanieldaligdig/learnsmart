@@ -185,12 +185,14 @@ export default function ChatModule({
   const isInitialState = messages.length === 0;
   const textareaRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const abortControllerRef = useRef(null);
   const revealStateRef = useRef({ cancelled: false, timerId: null });
   const [isStreaming, setIsStreaming] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [isExporting, setIsExporting] = useState(false);
+  const [showUploadMenu, setShowUploadMenu] = useState(false);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -263,10 +265,17 @@ export default function ChatModule({
   async function streamResponse(allMessages) {
     const history = allMessages
       .filter((m) => !(m.role === "assistant" && m.content === "ai is thinking..."))
-      .map((m) => ({
-        role: m.role === "user" || m.role === "human" ? "user" : "assistant",
-        content: m.content,
-      }));
+      .map((m) => {
+        const msg = {
+          role: m.role === "user" || m.role === "human" ? "user" : "assistant",
+          content: m.content,
+        };
+        // Include attachments if they exist
+        if (m.attachments && m.attachments.length > 0) {
+          msg.attachments = m.attachments;
+        }
+        return msg;
+      });
 
     const placeholderMsg = allMessages[allMessages.length - 1];
     if (!placeholderMsg) return;
@@ -371,6 +380,19 @@ export default function ChatModule({
     }
 
     event.target.value = "";
+    setShowUploadMenu(false);
+  }
+
+  function handleImageClick() {
+    imageInputRef.current?.click();
+  }
+
+  function handleFileClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleAttachmentClick() {
+    setShowUploadMenu(!showUploadMenu);
   }
 
   function handleRemoveAttachment(id) {
@@ -482,25 +504,65 @@ export default function ChatModule({
 
         <div className="dashboard-panel w-full rounded-[24px] px-3 py-2 backdrop-blur">
           <div className="flex items-end gap-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isStreaming}
-              className="dashboard-action mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition disabled:opacity-50"
-              aria-label="Attach file or image"
-              title="Attach image or document"
-            >
-              <FiPaperclip className="text-sm" />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={handleAttachmentClick}
+                disabled={isStreaming}
+                className="dashboard-action mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition disabled:opacity-50"
+                aria-label="Attach file or image"
+                title="Attach image or document"
+              >
+                <FiPaperclip className="text-sm" />
+              </button>
+
+              {showUploadMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setShowUploadMenu(false)}
+                  />
+                  <div className="dashboard-panel absolute bottom-10 left-0 z-40 flex w-36 flex-col gap-2 rounded-lg border p-2 backdrop-blur">
+                    <button
+                      type="button"
+                      onClick={handleImageClick}
+                      className="dashboard-action flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition hover:bg-white/5"
+                    >
+                      <span>🖼️</span>
+                      <span>Upload Image</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleFileClick}
+                      className="dashboard-action flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition hover:bg-white/5"
+                    >
+                      <span>📄</span>
+                      <span>Upload File</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <input
+              ref={imageInputRef}
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleFileSelect}
+              className="hidden"
+              aria-label="Image input"
+            />
             <input
               ref={fileInputRef}
               type="file"
               multiple
-              accept="image/*,.pdf,.txt,.doc,.docx"
+              accept=".pdf,.txt,.doc,.docx"
               onChange={handleFileSelect}
               className="hidden"
               aria-label="File input"
             />
+
             <textarea
               ref={textareaRef}
               value={chatInput}
