@@ -63,11 +63,10 @@ function MessageBubble({ message }) {
                   return (
                     <div key={attachment.id}>
                       {isImage && attachment.data ? (
-                        <img
-                          src={attachment.data}
-                          alt="Uploaded image"
-                          className="max-w-full rounded border border-white/10 max-h-[300px] object-contain"
-                        />
+                        <div className="flex items-center gap-2 rounded bg-white/5 px-2 py-1 text-xs">
+                          <span>Image</span>
+                          <span className="truncate">{attachment.name}</span>
+                        </div>
                       ) : (
                         <div className="flex items-center gap-2 rounded bg-white/5 px-2 py-1 text-xs">
                           <span>📎</span>

@@ -24,6 +24,68 @@ export const config = {
   runtime: "nodejs",
 };
 
+function transformMessages(messages) {
+  return messages.map((message) => {
+    if (!Array.isArray(message?.attachments) || message.attachments.length === 0) {
+      return {
+        role: message.role,
+        content: message.content,
+      };
+    }
+
+    const content = [];
+    const messageText =
+      typeof message.content === "string" && message.content !== "Analyze this:"
+        ? message.content
+        : "";
+
+    // OpenRouter's chat/completions endpoint expects OpenAI-style multimodal content.
+    if (messageText) {
+      content.push({
+        type: "text",
+        text: messageText,
+      });
+    }
+
+    for (const attachment of message.attachments) {
+      if (!attachment?.type || typeof attachment.data !== "string") continue;
+
+      if (attachment.type.startsWith("image/")) {
+        content.push({
+          type: "image_url",
+          imageUrl: {
+            url: attachment.data,
+          },
+        });
+        continue;
+      }
+
+      if (
+        attachment.type.startsWith("text/") ||
+        attachment.type.includes("word") ||
+        attachment.type.includes("pdf")
+      ) {
+        content.push({
+          type: "text",
+          text: `[Document: ${attachment.name || "Untitled"}]\n${attachment.data}`,
+        });
+      }
+    }
+
+    if (content.length === 0) {
+      content.push({
+        type: "text",
+        text: message.content || "Please analyze the attached file.",
+      });
+    }
+
+    return {
+      role: message.role,
+      content,
+    };
+  });
+}
+
 export default {
   async fetch(request) {
     if (request.method === "OPTIONS") {
@@ -54,6 +116,8 @@ export default {
     }
 
     try {
+      const transformedMessages = transformMessages(messages);
+
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -66,7 +130,7 @@ export default {
           model: OPENROUTER_MODEL,
           messages: [
             ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
-            ...messages,
+            ...transformedMessages,
           ],
         }),
       });
