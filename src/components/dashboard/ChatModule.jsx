@@ -20,14 +20,22 @@ STRICTLY PROHIBITED TOPICS - Politely decline and redirect:
 - Political/religious propaganda
 - Personal financial advice (recommend consulting professionals)
 
+IMAGE/DOCUMENT ANALYSIS - BE PRECISE:
+- When analyzing images, diagrams, or documents, be SPECIFIC and DETAILED
+- Identify the EXACT type (e.g., "3D rendering", "watercolor painting", "photograph", "hand-drawn sketch")
+- Describe materials, techniques, and style accurately
+- If analyzing math problems, diagrams, or equations - break down exactly what you see
+- NEVER generalize - if it's a 3D model, say "3D model", not "photograph"
+
 RESPONSE GUIDELINES:
 1. If a question is educational in nature, provide comprehensive help
 2. If a question relates to prohibited topics, politely decline and explain: "I'm designed to help with educational topics. This topic isn't covered in my academic scope. Is there an educational subject I can help you with?"
-3. If a general knowledge question extends beyond education (e.g., "What is poker?"), provide basic factual information, but decline deeper engagement
-4. Always maintain an encouraging, supportive tone for legitimate academic questions
-5. Use clear examples and break down complex concepts
+3. If a general knowledge question extends beyond education, provide basic factual information, but decline deeper engagement
+4. For image analysis: Be specific about type, medium, and details rather than general observations
+5. Always maintain an encouraging, supportive tone for legitimate academic questions
+6. Use clear examples and break down complex concepts
 
-Be concise but thorough. Cite sources when possible. Encourage critical thinking.`;
+Be concise but thorough. Cite sources when possible. Encourage critical thinking. ACCURACY > BREVITY for image analysis.`;
 const REVEAL_FRAME_MS = 18;
 const REVEAL_MIN_CHUNK = 1;
 const REVEAL_MAX_CHUNK = 16;
@@ -57,9 +65,8 @@ function MessageBubble({ message }) {
                       {isImage && attachment.data ? (
                         <img
                           src={attachment.data}
-                          alt={attachment.name}
+                          alt="Uploaded image"
                           className="max-w-full rounded border border-white/10 max-h-[300px] object-contain"
-                          title={attachment.name}
                         />
                       ) : (
                         <div className="flex items-center gap-2 rounded bg-white/5 px-2 py-1 text-xs">
@@ -72,7 +79,9 @@ function MessageBubble({ message }) {
                 })}
               </div>
             )}
-            <div className="whitespace-pre-wrap">{message.content}</div>
+            {message.content && message.content !== "Analyze this:" && (
+              <div className="whitespace-pre-wrap">{message.content}</div>
+            )}
           </div>
         </div>
       ) : (

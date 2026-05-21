@@ -611,14 +611,8 @@ useEffect(() => {
 
     const targetId = activeChatId || createUuid();
     
-    // Build message content with attachments info
-    let messageContent = trimmedInput;
-    if (attachments.length > 0) {
-      const attachmentInfo = attachments
-        .map((a) => `[${a.type.startsWith("image") ? "Image" : "Document"}: ${a.name}]`)
-        .join("\n");
-      messageContent = trimmedInput ? `${trimmedInput}\n\n${attachmentInfo}` : attachmentInfo;
-    }
+    // Message content is just the text - attachments are sent separately
+    const messageContent = trimmedInput || (attachments.length > 0 ? "Analyze this:" : "");
 
     const userMessage = {
       id: createId("message"),
