@@ -204,7 +204,7 @@ export default function ChatModule({
   }, [chatInput]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
   }, [messages]);
 
   useEffect(() => {
@@ -296,6 +296,28 @@ export default function ChatModule({
           messages: history,
           systemPrompt: AI_SYSTEM_PROMPT,
         }),
+      });
+
+      // Debug: Log request details
+      const requestBody = {
+        messages: history,
+        systemPrompt: AI_SYSTEM_PROMPT,
+      };
+      console.log(`\n=== FRONTEND REQUEST ===`);
+      console.log(`Sending ${history.length} messages to backend:`);
+      history.forEach((m, idx) => {
+        if (typeof m.content === 'string') {
+          console.log(`  Message ${idx}: role="${m.role}", content="${m.content?.substring(0, 50)}..."`);
+        } else if (Array.isArray(m.content)) {
+          console.log(`  Message ${idx}: role="${m.role}", content array with ${m.content.length} items`);
+          m.content.forEach((c, cidx) => {
+            if (c.type === 'image') {
+              console.log(`    Content ${cidx}: IMAGE, media_type="${c.source?.media_type}", dataLength=${c.source?.data?.length || 0}`);
+            } else {
+              console.log(`    Content ${cidx}: TEXT, text="${c.text?.substring(0, 50) || 'N/A'}..."`);
+            }
+          });
+        }
       });
 
       if (!response.ok) {
@@ -419,8 +441,28 @@ export default function ChatModule({
       return;
     }
     
+    // Extra validation: check data is actually present and is a string
+    for (const attachment of validAttachments) {
+      if (typeof attachment.data !== 'string') {
+        console.error("Attachment data is not a string:", attachment);
+        alert("Error: Attachment data is invalid. Please try again.");
+        return;
+      }
+      if (attachment.data.length === 0) {
+        alert("Error: Attachment data is empty. Please try again.");
+        return;
+      }
+    }
+    
     if (validAttachments.length > 0) {
-      console.log(`Submitting ${validAttachments.length} attachment(s):`, validAttachments.map(a => ({ name: a.name, type: a.type, size: a.size })));
+      console.log(`Submitting ${validAttachments.length} attachment(s):`, validAttachments.map(a => ({ 
+        name: a.name, 
+        type: a.type, 
+        size: a.size,
+        dataType: typeof a.data,
+        dataLength: a.data?.length || 0,
+        isDataUrl: a.data?.startsWith('data:') || false
+      })));
     }
     
     // Pass both message and attachments
