@@ -50,11 +50,26 @@ function MessageBubble({ message }) {
           <div className="dashboard-action-strong rounded-3xl px-5 py-3 text-[15px] leading-7 shadow-[0_10px_30px_rgba(255,255,255,0.08)]">
             {message.attachments && message.attachments.length > 0 && (
               <div className="mb-3 space-y-2">
-                {message.attachments.map((attachment) => (
-                  <div key={attachment.id} className="text-xs opacity-75">
-                    📎 {attachment.name}
-                  </div>
-                ))}
+                {message.attachments.map((attachment) => {
+                  const isImage = attachment.type?.startsWith("image/");
+                  return (
+                    <div key={attachment.id}>
+                      {isImage && attachment.data ? (
+                        <img
+                          src={attachment.data}
+                          alt={attachment.name}
+                          className="max-w-full rounded border border-white/10 max-h-[300px] object-contain"
+                          title={attachment.name}
+                        />
+                      ) : (
+                        <div className="flex items-center gap-2 rounded bg-white/5 px-2 py-1 text-xs">
+                          <span>📎</span>
+                          <span className="truncate">{attachment.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
             <div className="whitespace-pre-wrap">{message.content}</div>
@@ -100,32 +115,52 @@ function FilePreview({ attachment, onRemove }) {
   const isImage = attachment.type?.startsWith("image/");
 
   return (
-    <div className="dashboard-surface relative flex items-center gap-2 rounded-lg border p-2">
-      {isImage ? (
-        <img
-          src={attachment.preview}
-          alt={attachment.name}
-          className="h-12 w-12 rounded object-cover"
-        />
+    <div className="dashboard-surface relative flex flex-col gap-2 rounded-lg border p-3">
+      {isImage && attachment.preview ? (
+        <div className="relative">
+          <img
+            src={attachment.preview}
+            alt={attachment.name}
+            className="w-full rounded border border-white/10 max-h-48 object-contain"
+            onError={(e) => {
+              e.target.style.display = "none";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => onRemove(attachment.id)}
+            className="dashboard-action absolute right-2 top-2 flex h-6 w-6 shrink-0 items-center justify-center rounded border transition hover:bg-red-500/20"
+            aria-label="Remove attachment"
+          >
+            <FiX className="text-xs" />
+          </button>
+        </div>
       ) : (
-        <div className="flex h-12 w-12 items-center justify-center rounded bg-white/5">
-          <FiPaperclip className="text-sm" />
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-white/5">
+            <FiPaperclip className="text-sm" />
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <div className="truncate text-sm font-medium">{attachment.name}</div>
+            <div className="text-xs opacity-60">
+              {(attachment.size / 1024).toFixed(1)} KB
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onRemove(attachment.id)}
+            className="dashboard-action flex h-7 w-7 shrink-0 items-center justify-center rounded border transition hover:bg-white/5"
+            aria-label="Remove attachment"
+          >
+            <FiX className="text-xs" />
+          </button>
         </div>
       )}
-      <div className="flex-1 overflow-hidden">
-        <div className="truncate text-sm font-medium">{attachment.name}</div>
+      {isImage && (
         <div className="text-xs opacity-60">
-          {(attachment.size / 1024).toFixed(1)} KB
+          {attachment.name} • {(attachment.size / 1024).toFixed(1)} KB
         </div>
-      </div>
-      <button
-        type="button"
-        onClick={() => onRemove(attachment.id)}
-        className="dashboard-action flex h-7 w-7 shrink-0 items-center justify-center rounded border transition hover:bg-white/5"
-        aria-label="Remove attachment"
-      >
-        <FiX className="text-xs" />
-      </button>
+      )}
     </div>
   );
 }
@@ -306,17 +341,24 @@ export default function ChatModule({
 
       const reader = new FileReader();
       reader.onload = (e) => {
+        const dataUrl = e.target?.result;
         const attachment = {
           id: `${Date.now()}-${Math.random()}`,
           name: file.name,
           type: file.type,
           size: file.size,
-          data: e.target?.result,
-          preview: isImage ? e.target?.result : null,
+          data: dataUrl, // Use data URL directly for both display and transmission
+          preview: isImage ? dataUrl : null,
         };
         setAttachments((prev) => [...prev, attachment]);
       };
-      reader.readAsArrayBuffer(file);
+      
+      // Read as data URL for proper display and transmission
+      if (isImage) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.readAsText(file);
+      }
     }
 
     event.target.value = "";

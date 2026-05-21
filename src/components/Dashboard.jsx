@@ -604,17 +604,33 @@ useEffect(() => {
     }
   }, [user?.id]);
 
-  const handleChatSubmit = useCallback(() => {
+  const handleChatSubmit = useCallback((attachments = []) => {
     if (isLoggingOut) return;
     const trimmedInput = chatInput.trim();
-    if (!trimmedInput) return;
+    if (!trimmedInput && attachments.length === 0) return;
 
     const targetId = activeChatId || createUuid();
+    
+    // Build message content with attachments info
+    let messageContent = trimmedInput;
+    if (attachments.length > 0) {
+      const attachmentInfo = attachments
+        .map((a) => `[${a.type.startsWith("image") ? "Image" : "Document"}: ${a.name}]`)
+        .join("\n");
+      messageContent = trimmedInput ? `${trimmedInput}\n\n${attachmentInfo}` : attachmentInfo;
+    }
+
     const userMessage = {
       id: createId("message"),
       role: "user",
-      content: trimmedInput,
-      
+      content: messageContent,
+      attachments: attachments.map((a) => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+        size: a.size,
+        data: a.data, // Include data URL or text content
+      })),
     };
 
     setActiveChatId(targetId);
@@ -628,7 +644,7 @@ useEffect(() => {
         id: targetId,
         title:
           !existingSession?.title || existingSession.title === "New chat"
-            ? trimmedInput
+            ? trimmedInput || "Chat with attachments"
             : existingSession.title,
         updatedAt: Date.now(),
         messages: nextMessages,
