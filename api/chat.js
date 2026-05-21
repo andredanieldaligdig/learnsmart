@@ -1,5 +1,7 @@
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "anthropic/claude-sonnet-4";
+const OPENROUTER_VISION_MODEL =
+  process.env.OPENROUTER_VISION_MODEL || "google/gemini-2.5-flash";
 const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL || "http://localhost:5173";
 
 function jsonResponse(body, init = {}) {
@@ -53,7 +55,7 @@ function transformMessages(messages) {
       if (attachment.type.startsWith("image/")) {
         content.push({
           type: "image_url",
-          imageUrl: {
+          image_url: {
             url: attachment.data,
           },
         });
@@ -84,6 +86,15 @@ function transformMessages(messages) {
       content,
     };
   });
+}
+
+function selectModel(messages) {
+  const hasImageAttachment = messages.some((message) =>
+    Array.isArray(message?.attachments)
+    && message.attachments.some((attachment) => attachment?.type?.startsWith("image/"))
+  );
+
+  return hasImageAttachment ? OPENROUTER_VISION_MODEL : OPENROUTER_MODEL;
 }
 
 export default {
@@ -117,6 +128,7 @@ export default {
 
     try {
       const transformedMessages = transformMessages(messages);
+      const model = selectModel(messages);
 
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -127,7 +139,7 @@ export default {
           "X-Title": "LearnSmart",
         },
         body: JSON.stringify({
-          model: OPENROUTER_MODEL,
+          model,
           messages: [
             ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
             ...transformedMessages,
