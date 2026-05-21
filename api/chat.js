@@ -53,7 +53,7 @@ function transformMessages(messages) {
       if (attachment.type.startsWith("image/")) {
         content.push({
           type: "image_url",
-          imageUrl: {
+          image_url: {
             url: attachment.data,
           },
         });
