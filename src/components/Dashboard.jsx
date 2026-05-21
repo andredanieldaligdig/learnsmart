@@ -604,10 +604,14 @@ useEffect(() => {
     }
   }, [user?.id]);
 
-  const handleChatSubmit = useCallback((attachments = []) => {
+  const handleChatSubmit = useCallback((message = "", attachments = []) => {
     if (isLoggingOut) return;
-    const trimmedInput = chatInput.trim();
+    const trimmedInput = message.trim();
     if (!trimmedInput && attachments.length === 0) return;
+
+    if (attachments.length > 0) {
+      console.log(`Dashboard received ${attachments.length} attachment(s):`, attachments.map(a => ({ name: a.name, type: a.type, size: a.size, hasData: !!a.data })));
+    }
 
     const targetId = activeChatId || createUuid();
     
@@ -653,7 +657,7 @@ useEffect(() => {
     if (nextSessionToPersist) {
       persistChatSession(nextSessionToPersist).catch(() => {});
     }
-  }, [activeChat, activeChatId, chatInput, isLoggingOut, persistChatSession]);
+  }, [activeChat, activeChatId, isLoggingOut, persistChatSession]);
 
   // Called by ChatModule as tokens stream in
   const handleStreamingUpdate = useCallback((messageId, content, streaming) => {

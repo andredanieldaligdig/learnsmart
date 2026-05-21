@@ -401,7 +401,31 @@ export default function ChatModule({
 
   function handleSubmit() {
     if (isStreaming) return;
-    onSubmit(attachments);
+    
+    const trimmedInput = chatInput.trim();
+    
+    // Validate attachments have data before sending
+    const validAttachments = attachments.filter((a) => a.data);
+    const invalidAttachments = attachments.filter((a) => !a.data);
+    
+    if (invalidAttachments.length > 0) {
+      alert(`${invalidAttachments.length} attachment(s) are still loading. Please wait...`);
+      return;
+    }
+    
+    // Allow submission if there's text OR attachments
+    if (!trimmedInput && validAttachments.length === 0) {
+      alert("Please enter a message or attach a file.");
+      return;
+    }
+    
+    if (validAttachments.length > 0) {
+      console.log(`Submitting ${validAttachments.length} attachment(s):`, validAttachments.map(a => ({ name: a.name, type: a.type, size: a.size })));
+    }
+    
+    // Pass both message and attachments
+    onSubmit(trimmedInput, validAttachments);
+    setChatInput("");
     setAttachments([]);
   }
 
