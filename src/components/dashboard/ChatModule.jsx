@@ -11,7 +11,15 @@ const AI_SYSTEM_PROMPT =
 
 If the user attaches an image, screenshot, diagram, or document, analyze the attachment directly and answer based on what is visible in it.
 Do not say you cannot see an attachment unless no attachment content is actually provided.
-Be specific and accurate about what you see, then help with the user's question in a clear, concise way.`;
+Be specific and accurate about what you see, then help with the user's question in a clear, concise way.
+
+If the topic is educational, always end with exactly one short follow-up suggestion or next-step question the student can continue with.
+Examples of good endings:
+- "Next topic: Want to compare this with..."
+- "Try this next: ..."
+- "Follow-up question: ..."
+
+Keep the follow-up natural, helpful, and related to the current topic.`;
 const REVEAL_FRAME_MS = 18;
 const REVEAL_MIN_CHUNK = 1;
 const REVEAL_MAX_CHUNK = 16;
